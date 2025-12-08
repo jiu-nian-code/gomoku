@@ -14,7 +14,7 @@ public:
 
     bool insert(const char* name, const char* password) // 注册
     {
-        #define INSERT_USER_SQL "insert into user(name, password, score, total_games, win_games) value(%s, password(\"%s\"), 0, 0, 0);"
+        #define INSERT_USER_SQL "insert into user(name, password, score, total_games, win_games) value(%s, password(\"%s\"), 1000, 0, 0);"
         if(!name || !password)
         {
             DBG_LOG("name or password can't be null.");
@@ -22,17 +22,22 @@ public:
         }
         char buf[1024] = {0};
         snprintf(buf, 1024, INSERT_USER_SQL, name, password);
-        bool ret = _mu.exec_mysql(buf);
-        if(!ret)
         {
-            DBG_LOG("insert error.");
-            return false;
+            std::unique_lock<std::mutex> lock(_mt);
+            bool ret = _mu.exec_mysql(buf);
+            if(!ret)
+            {
+                DBG_LOG("insert error.");
+                return false;
+            }
         }
         return true;
     }
 
-    bool login(const char* name, const char* password)
+    bool login(Json::Value& va)
     {
+        const char* name = va["name"].asCString();
+        const char* password = va["password"].asCString();
         #define SELECT_BY_NAME_AND_PW_SQL "select id, score, total_games, win_games from user where name = \"%s\" and password = pqssword(\"%s\");"
         if(!name || !password)
         {
@@ -41,17 +46,33 @@ public:
         }
         char buf[1024] = {0};
         snprintf(buf, 1024, SELECT_BY_NAME_AND_PW_SQL, name, password);
-        bool ret = _mu.exec_mysql(buf);
-        if(!ret)
+        MYSQL_RES* res = nullptr;
         {
-            DBG_LOG("select by name and pw error.");
+            std::unique_lock<std::mutex> lock(_mt);
+            bool ret = _mu.exec_mysql(buf);
+            if(!ret)
+            {
+                DBG_LOG("select by name and pw error.");
+                return false;
+            }
+            res = _mu.result_mysql();
+            if(!res)
+            {
+                DBG_LOG("user information not exists!");
+                return false;
+            }
+        }
+        if(mysql_num_rows(res) != 1)
+        {
+            DBG_LOG("user information is duplicated!");
             return false;
         }
-        MYSQL_RES* res = _mu.result_mysql();
-        if(!res || mysql_num_fields(res) != 1)
-        {
-            DBG_LOG("");
-        }
+        MYSQL_ROW rows = mysql_fetch_row(res);
+        va["id"] = std::stoi(rows[0]);
+        va["score"] = std::stoi(rows[1]);
+        va["total_games"] = std::stoi(rows[2]);
+        va["win_games"] = std::stoi(rows[3]);
+        mysql_free_result(res);
         return true;
     }
 
@@ -60,17 +81,21 @@ public:
         #define SELECT_BY_NAME_SQL "select id, password, score, total_games, win_games from user where name = \"%s\";"
         char buf[1024] = {0};
         snprintf(buf, 1024, INSERT_USER_SQL, name);
-        bool ret = _mu.exec_mysql(buf);
-        if(!ret)
+        MYSQL_RES* res = nullptr;
         {
-            DBG_LOG("select by name error.");
-            return false;
-        }
-        MYSQL_RES* res = _mu.result_mysql();
-        if(!res)
-        {
-            DBG_LOG("result is empty.");
-            return false;
+            std::unique_lock<std::mutex> lock(_mt);
+            bool ret = _mu.exec_mysql(buf);
+            if(!ret)
+            {
+                DBG_LOG("select by name error.");
+                return false;
+            }
+            res = _mu.result_mysql();
+            if(!res)
+            {
+                DBG_LOG("result is empty.");
+                return false;
+            }
         }
         my_ulonglong rownum = mysql_num_rows(res);
         unsigned int fieldnum = mysql_num_fields(res);
@@ -90,17 +115,21 @@ public:
         #define SELECT_BY_NAME_SQL "select id, password, score, total_games, win_games from user where id = %d;"
         char buf[1024] = {0};
         snprintf(buf, 1024, INSERT_USER_SQL, id);
-        bool ret = _mu.exec_mysql(buf);
-        if(!ret)
+        MYSQL_RES* res = nullptr;
         {
-            DBG_LOG("select by id error.");
-            return false;
-        }
-        MYSQL_RES* res = _mu.result_mysql();
-        if(!res)
-        {
-            DBG_LOG("result is empty.");
-            return false;
+            std::unique_lock<std::mutex> lock(_mt);
+            bool ret = _mu.exec_mysql(buf);
+            if(!ret)
+            {
+                DBG_LOG("select by id error.");
+                return false;
+            }
+            res = _mu.result_mysql();
+            if(!res)
+            {
+                DBG_LOG("result is empty.");
+                return false;
+            }
         }
         my_ulonglong rownum = mysql_num_rows(res);
         unsigned int fieldnum = mysql_num_fields(res);
@@ -115,13 +144,37 @@ public:
         return true;
     }
 
-    void win()
+    bool win(int id)
     {
-
+        #define WIN_UPDATE "update user set score = score + 10, total_games = total_games + 1, win_games = win_games + 1 where id = %d;"
+        char buf[1024] = {0};
+        snprintf(buf, 1024, WIN_UPDATE, id);
+        {
+            std::unique_lock<std::mutex> lock(_mt);
+            bool ret = _mu.exec_mysql(buf);
+            if(!ret)
+            {
+                DBG_LOG("win update error.");
+                return false;
+            }
+        }
+        return true;
     }
 
-    void lose()
+    bool lose(int id)
     {
-
+        #define LOSE_UPDATE "update user set score = score - 10, total_games = total_games + 1 where id = %d;"
+        char buf[1024] = {0};
+        snprintf(buf, 1024, WIN_UPDATE, id);
+        {
+            std::unique_lock<std::mutex> lock(_mt);
+            bool ret = _mu.exec_mysql(buf);
+            if(!ret)
+            {
+                DBG_LOG("win update error.");
+                return false;
+            }
+        }
+        return true;
     }
 };
