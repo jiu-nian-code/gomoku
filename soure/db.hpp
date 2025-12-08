@@ -1,3 +1,5 @@
+#pragma once
+
 #include"util.hpp"
 
 #include<mutex>
@@ -7,21 +9,25 @@ class User_Table
     Mysql_Util _mu;
     std::mutex _mt;
 public:
-    User_Table()
+    User_Table(const char *host, const char *user, 
+        const char *passwd, const char *db, 
+        unsigned int port, const char *unix_socket, 
+        unsigned long clientflag)
     {
-        _mu.create_mysql("127.0.0.1", "thx", "thxTHX@0210", "gomoku_db", 3333, NULL, 0);
+        bool ret = _mu.create_mysql(host, user, passwd, db, port, unix_socket, clientflag);
+        if(!ret) DBG_LOG("mysql create fail.");
     }
 
-    bool insert(const char* name, const char* password) // 注册
+    bool insert(Json::Value& va) // 注册
     {
-        #define INSERT_USER_SQL "insert into user(name, password, score, total_games, win_games) value(%s, password(\"%s\"), 1000, 0, 0);"
-        if(!name || !password)
+        #define INSERT_USER_SQL "insert into user(name, password, score, total_games, win_games) value(\"%s\", MD5(\"%s\"), 1000, 0, 0);"
+        if(va["name"].isNull() || va["password"].isNull())
         {
             DBG_LOG("name or password can't be null.");
             return false;
         }
         char buf[1024] = {0};
-        snprintf(buf, 1024, INSERT_USER_SQL, name, password);
+        snprintf(buf, 1024, INSERT_USER_SQL, va["name"].asCString(), va["password"].asCString());
         {
             std::unique_lock<std::mutex> lock(_mt);
             bool ret = _mu.exec_mysql(buf);
@@ -36,16 +42,14 @@ public:
 
     bool login(Json::Value& va)
     {
-        const char* name = va["name"].asCString();
-        const char* password = va["password"].asCString();
-        #define SELECT_BY_NAME_AND_PW_SQL "select id, score, total_games, win_games from user where name = \"%s\" and password = pqssword(\"%s\");"
-        if(!name || !password)
+        #define SELECT_BY_NAME_AND_PW_SQL "select id, score, total_games, win_games from user where name = \"%s\" and password = MD5(\"%s\");"
+        if(va["name"].isNull() || va["password"].isNull())
         {
             DBG_LOG("name or password can't be null.");
             return false;
         }
         char buf[1024] = {0};
-        snprintf(buf, 1024, SELECT_BY_NAME_AND_PW_SQL, name, password);
+        snprintf(buf, 1024, SELECT_BY_NAME_AND_PW_SQL, va["name"].asCString(), va["password"].asCString());
         MYSQL_RES* res = nullptr;
         {
             std::unique_lock<std::mutex> lock(_mt);
@@ -80,7 +84,7 @@ public:
     {
         #define SELECT_BY_NAME_SQL "select id, password, score, total_games, win_games from user where name = \"%s\";"
         char buf[1024] = {0};
-        snprintf(buf, 1024, INSERT_USER_SQL, name);
+        snprintf(buf, 1024, SELECT_BY_NAME_SQL, name);
         MYSQL_RES* res = nullptr;
         {
             std::unique_lock<std::mutex> lock(_mt);
@@ -97,12 +101,14 @@ public:
                 return false;
             }
         }
-        my_ulonglong rownum = mysql_num_rows(res);
-        unsigned int fieldnum = mysql_num_fields(res);
-        if(fieldnum != 1) return false;
+        if(mysql_num_rows(res) != 1)
+        {
+            DBG_LOG("user information is duplicated!");
+            return false;
+        }
         MYSQL_ROW rows = mysql_fetch_row(res);
-        va["id"] = rows[0];
-        va["password"] = rows[1];
+        va["id"] = std::stoi(rows[0]);
+        // va["password"] = rows[1];
         va["score"] = std::stoi(rows[2]);
         va["total_games"] = std::stoi(rows[3]);
         va["win_games"] = std::stoi(rows[4]);
@@ -112,9 +118,9 @@ public:
 
     bool select_by_id(int id, Json::Value& va)
     {
-        #define SELECT_BY_NAME_SQL "select id, password, score, total_games, win_games from user where id = %d;"
+        #define SELECT_BY_ID_SQL "select name, password, score, total_games, win_games from user where id = %d;"
         char buf[1024] = {0};
-        snprintf(buf, 1024, INSERT_USER_SQL, id);
+        snprintf(buf, 1024, SELECT_BY_ID_SQL, id);
         MYSQL_RES* res = nullptr;
         {
             std::unique_lock<std::mutex> lock(_mt);
@@ -131,12 +137,14 @@ public:
                 return false;
             }
         }
-        my_ulonglong rownum = mysql_num_rows(res);
-        unsigned int fieldnum = mysql_num_fields(res);
-        if(fieldnum != 1) return false;
+        if(mysql_num_rows(res) != 1)
+        {
+            DBG_LOG("user information is duplicated!");
+            return false;
+        }
         MYSQL_ROW rows = mysql_fetch_row(res);
         va["name"] = rows[0];
-        va["password"] = rows[1];
+        // va["password"] = rows[1];
         va["score"] = std::stoi(rows[2]);
         va["total_games"] = std::stoi(rows[3]);
         va["win_games"] = std::stoi(rows[4]);
@@ -165,7 +173,7 @@ public:
     {
         #define LOSE_UPDATE "update user set score = score - 10, total_games = total_games + 1 where id = %d;"
         char buf[1024] = {0};
-        snprintf(buf, 1024, WIN_UPDATE, id);
+        snprintf(buf, 1024, LOSE_UPDATE, id);
         {
             std::unique_lock<std::mutex> lock(_mt);
             bool ret = _mu.exec_mysql(buf);

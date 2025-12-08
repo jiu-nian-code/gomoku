@@ -11,5 +11,5 @@ create table if not exists user
 );
 
 -- 测试用户
-insert into user(name, password, score, total_games, win_games) value("田所浩二", password("HOMOhomo@114514"), 0, 0, 0);
-insert into user(name, password, score, total_games, win_games) value("佐佐木淳平", password("YADAmoyada@114514"), 0, 0, 0);
+insert into user(name, password, score, total_games, win_games) value("田所浩二", MD5("HOMOhomo@114514"), 1000, 0, 0);
+insert into user(name, password, score, total_games, win_games) value("佐佐木淳平", MD5("YADAmoyada@114514"), 1000, 0, 0);

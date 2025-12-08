@@ -1,5 +1,9 @@
 #include"util.hpp"
 
+#include"db.hpp"
+
+#include"online.hpp"
+
 void test_Mysql_Util()
 {
     Mysql_Util mu;
@@ -38,8 +42,51 @@ void test_File_Util()
     std::cout << str.size() << std::endl;
 }
 
+void test_user_table()
+{
+    User_Table ut("127.0.0.1", "thx", "thxTHX@0210", "gomoku_db", 3333, NULL, 0);
+    Json::Value va;
+    Json::Value ret;
+    va["name"] = "童宏旭";
+    va["password"] = "thxTHX@0210";
+    ut.insert(va);
+    ut.login(va);
+    // ut.win(va["id"].asInt());
+    // ut.lose(va["id"].asInt());
+    // std::cout << "id: " << va["id"].asInt() << " score: " 
+    // << va["score"].asInt() << " total_games: " 
+    // << va["total_games"] << " win_games: " 
+    // << va["win_games"].asInt() << std::endl;
+    // ut.select_by_name("田所浩二", va);
+    // std::cout << "id: " << va["id"].asInt() << " score: " 
+    // << va["score"].asInt() << " total_games: " 
+    // << va["total_games"] << " win_games: " 
+    // << va["win_games"].asInt() << std::endl;
+    ut.select_by_id(va["id"].asInt(), ret);
+    std::cout << "id: " << ret["id"].asInt() << " score: " 
+    << ret["score"].asInt() << " total_games: " 
+    << ret["total_games"] << " win_games: " 
+    << ret["win_games"].asInt() << std::endl;
+}
+
+void test_online_manager()
+{
+    websocketsvr::connection_ptr con;
+    online_manager om;
+    std::cout << om.is_in_hall(1) << std::endl;
+    om.enter_hall(1, con);
+    std::cout << om.is_in_hall(1) << std::endl;
+    om.exit_hall(1);
+    std::cout << om.is_in_hall(1) << std::endl;
+    std::cout << om.is_in_room(2) << std::endl;
+    om.enter_room(2, con);
+    std::cout << om.is_in_room(2) << std::endl;
+    om.exit_room(2);
+    std::cout << om.is_in_room(2) << std::endl;
+}
+
 int main()
 {
-    test_File_Util();
+    test_online_manager();
     return 0;
 }
