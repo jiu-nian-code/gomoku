@@ -72,7 +72,7 @@ void test_user_table()
 void test_online_manager()
 {
     websocketsvr::connection_ptr con;
-    online_manager om;
+    Online_Manager om;
     std::cout << om.is_in_hall(1) << std::endl;
     om.enter_hall(1, con);
     std::cout << om.is_in_hall(1) << std::endl;
