@@ -1,8 +1,7 @@
 #include"util.hpp"
-
 #include"db.hpp"
-
 #include"online.hpp"
+#include"room.hpp"
 
 void test_Mysql_Util()
 {
@@ -85,8 +84,24 @@ void test_online_manager()
     std::cout << om.is_in_room(2) << std::endl;
 }
 
+void test_room()
+{
+    Online_Manager om;
+    User_Table ut("127.0.0.1", "thx", "thxTHX@0210", "gomoku_db", 3333, NULL, 0);
+    websocketsvr::connection_ptr cp1;
+    websocketsvr::connection_ptr cp2;
+    om.enter_hall(1, cp1);
+    om.enter_hall(2, cp2);
+    Room_Manager rm(&om, &ut);
+    rm.create_room(1, 2);
+    rm.remove_user_room(1);
+    rm.remove_user_room(2);
+    Room_Manager::room_ptr rp = rm.get_room_by_uid(1);
+    if(rp.get() == nullptr) std::cout << "haha" << std::endl;
+}
+
 int main()
 {
-    test_online_manager();
+    test_room();
     return 0;
 }
