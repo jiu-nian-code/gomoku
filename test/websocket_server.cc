@@ -6,6 +6,11 @@
 
 typedef websocketpp::server<websocketpp::config::asio> websocketsvr;
 
+void PRINT()
+{
+    std::cout << "cnm" << std::endl;
+}
+
 void handler_http(websocketsvr* server, websocketpp::connection_hdl hdl)
 {
     std::cout << "handler http request." << std::endl;
@@ -22,6 +27,8 @@ void handler_http(websocketsvr* server, websocketpp::connection_hdl hdl)
     << "</body></head></html>";
     con->set_body(ss.str());
     con->set_status(websocketpp::http::status_code::ok);
+    websocketsvr::timer_ptr tp = server->set_timer(5000, std::bind(PRINT));
+    tp->cancel();
 }
 
 void handler_open(websocketpp::connection_hdl hdl)
