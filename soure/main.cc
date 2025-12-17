@@ -2,6 +2,9 @@
 #include"db.hpp"
 #include"online.hpp"
 #include"room.hpp"
+#include"session.hpp"
+#include"matcher.hpp"
+#include"matcher.hpp"
 
 void test_Mysql_Util()
 {
@@ -100,8 +103,69 @@ void test_room()
     if(rp.get() == nullptr) std::cout << "haha" << std::endl;
 }
 
+Session_Manager* sm_ptr = nullptr;
+
+void handler_http(websocketsvr* server, websocketpp::connection_hdl hdl)
+{
+    // std::cout << sm_ptr->is_in_session(0) << std::endl;
+    session_ptr sp = sm_ptr->create_session(1, LOGIN);
+    sm_ptr->set_session_expire_time(sp->get_sid(), -1);
+    sm_ptr->set_session_expire_time(sp->get_sid(), 3000);
+    sleep(4);
+    std::cout << sm_ptr->is_in_session(sp->get_sid()) << std::endl;
+    // sleep(10);
+    // std::cout << 3 << std::endl;
+}
+
+void handler_message(websocketsvr* server, websocketpp::connection_hdl hdl, std::shared_ptr<websocketpp::config::core::message_type> msg) {}
+
+void handler_open(websocketpp::connection_hdl hdl) {}
+
+void handler_close(websocketpp::connection_hdl hdl) {}
+
+void test_session()
+{
+    websocketsvr server;
+    server.set_access_channels(websocketpp::log::alevel::none);
+    server.init_asio();
+    server.set_reuse_addr(true);
+    server.set_http_handler(std::bind(&handler_http, &server, std::placeholders::_1));
+    server.set_open_handler(handler_open);
+    server.set_close_handler(handler_close);
+    server.set_message_handler(std::bind(&handler_message, &server, std::placeholders::_1, std::placeholders::_2));
+    server.listen(9091);
+    server.start_accept();
+    Session_Manager sm(&server);
+    sm_ptr = &sm;
+        // --- 开始设置多线程 ---
+    int thread_count = 4; // 比如设置 4 个线程
+    std::vector<std::thread> threads;
+
+    for (int i = 0; i < thread_count; ++i) {
+        threads.emplace_back([&server]() {
+            // 多个线程同时竞争处理 io_service 里的任务
+            server.run(); 
+        });
+    }
+
+    // 主线程可以去处理别的事情，或者等待这些线程结束
+    for (auto& t : threads) {
+        t.join();
+    }
+}
+
+void test_matcher()
+{
+    Matcher_Queue<int> mq;
+    mq.push(66);
+    int x = 0;
+    mq.pop(x);
+    std::cout << x << std::endl;
+    // mq.remove();
+}
+
 int main()
 {
-    test_room();
+    test_matcher();
     return 0;
 }
