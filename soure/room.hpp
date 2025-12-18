@@ -1,4 +1,6 @@
+#pragma once
 #include"online.hpp"
+
 typedef enum { GAME_START, GAME_OVER } Game_Stu;
 #define CHESSBOARD_SIZE 15
 #define WHITE_COLOR 1

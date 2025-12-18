@@ -1,0 +1,299 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>游戏大厅 - 个人中心</title>
+    <script src="https://apps.bdimg.com/libs/jquery/2.1.4/jquery.min.js"></script>
+    <style>
+        :root {
+            --neon-blue: #00d2ff;
+            --neon-purple: #9d50bb;
+            --neon-red: #ff4757;
+            --glass: rgba(255, 255, 255, 0.05);
+            --border: rgba(255, 255, 255, 0.15);
+            --card-bg: rgba(10, 15, 25, 0.98);
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Segoe UI', 'Microsoft YaHei', sans-serif; }
+
+        body {
+            background: radial-gradient(circle at center, #1b2735 0%, #050608 100%);
+            color: #fff;
+            height: 100vh;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* --- 顶部导航栏 --- */
+        header {
+            height: 80px;
+            padding: 0 40px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: rgba(0, 0, 0, 0.4);
+            backdrop-filter: blur(10px);
+            border-bottom: 1px solid var(--border);
+            z-index: 100;
+        }
+
+        .lobby-title {
+            font-size: 26px;
+            font-weight: 900;
+            letter-spacing: 5px;
+            background: linear-gradient(to right, var(--neon-blue), #fff);
+            -webkit-background-clip: text;
+            background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        /* --- 右上角头像与信息面板 --- */
+        .user-center {
+            position: relative;
+            padding: 10px 0;
+        }
+
+        .avatar-wrapper {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            cursor: pointer;
+            padding: 8px 20px;
+            border-radius: 40px;
+            background: var(--glass);
+            border: 1px solid var(--border);
+            transition: 0.3s;
+        }
+
+        .avatar-wrapper:hover { border-color: var(--neon-blue); box-shadow: 0 0 15px rgba(0,210,255,0.3); }
+        .avatar { width: 35px; height: 35px; border-radius: 50%; border: 2px solid var(--neon-blue); }
+
+        /* 纵向个人信息面板 */
+        .profile-dropdown {
+            position: absolute;
+            top: 75px;
+            right: 0;
+            width: 240px;
+            background: var(--card-bg);
+            border: 1px solid var(--border);
+            border-radius: 15px;
+            padding: 15px;
+            display: none; /* 默认隐藏 */
+            flex-direction: column;
+            gap: 10px;
+            backdrop-filter: blur(25px);
+            box-shadow: 0 15px 40px rgba(0,0,0,1);
+            animation: slideDown 0.3s ease-out;
+            z-index: 1000;
+        }
+
+        @keyframes slideDown {
+            from { opacity: 0; transform: translateY(-10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* 鼠标移入头像区域显示面板 */
+        .user-center:hover .profile-dropdown { display: flex; }
+
+        /* 个人信息模块样式 */
+        .info-module {
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            padding: 12px;
+            border-radius: 10px;
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+            transition: 0.3s;
+        }
+
+        .info-module:hover {
+            background: rgba(0, 210, 255, 0.05);
+            border-color: rgba(0, 210, 255, 0.2);
+        }
+
+        .info-label { font-size: 11px; color: rgba(255, 255, 255, 0.5); text-transform: uppercase; }
+        .info-value { font-size: 16px; font-weight: bold; color: #fff; }
+        .info-value.highlight { color: var(--neon-blue); text-shadow: 0 0 10px var(--neon-blue); }
+
+        /* 注销按钮 */
+        .logout-btn {
+            margin-top: 10px;
+            background: none;
+            border: 1px solid var(--neon-red);
+            color: var(--neon-red);
+            padding: 10px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: bold;
+            transition: 0.3s;
+        }
+        .logout-btn:hover { background: var(--neon-red); color: #fff; }
+
+        /* --- 其他原有样式保持不变 (侧边栏、匹配按钮、聊天、Toast) --- */
+        /* 为了简洁，此处省略了上一个回答中完全重复的 CSS，实际应用中请合并 */
+        .sidebar { position: fixed; left: 0; top: 50%; transform: translateY(-50%); display: flex; flex-direction: column; gap: 25px; z-index: 90; }
+        .side-btn { width: 260px; height: 80px; background: linear-gradient(90deg, var(--neon-purple), var(--neon-blue)); border: none; border-radius: 0 40px 40px 0; color: white; font-size: 20px; font-weight: bold; cursor: pointer; display: flex; align-items: center; padding-left: 30px; transform: translateX(-180px); transition: 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275); box-shadow: 10px 0 20px rgba(0,0,0,0.5); }
+        .side-btn:hover { transform: translateX(-15px); padding-left: 50px; box-shadow: 0 0 30px var(--neon-blue); }
+        .main-stage { flex: 1; display: flex; justify-content: center; align-items: center; }
+        .match-btn-container { position: relative; width: 300px; height: 300px; display: flex; justify-content: center; align-items: center; }
+        .match-btn { width: 220px; height: 220px; border-radius: 50%; background: radial-gradient(circle, var(--neon-blue), var(--neon-purple)); border: none; color: white; font-size: 28px; font-weight: bold; cursor: pointer; z-index: 2; transition: 0.5s; box-shadow: 0 0 40px rgba(0, 210, 255, 0.5); }
+        .ripple { position: absolute; width: 220px; height: 220px; border-radius: 50%; border: 2px solid var(--neon-blue); animation: move-ripple 2s infinite; pointer-events: none; opacity: 0; }
+        @keyframes move-ripple { 0% { transform: scale(1); opacity: 0.8; } 100% { transform: scale(1.8); opacity: 0; } }
+        .match-btn.active { background: radial-gradient(circle, var(--neon-red), #b91d1d); box-shadow: 0 0 60px var(--neon-red); }
+        .chat-container { position: fixed; bottom: 30px; right: 30px; z-index: 1000; }
+        .chat-toggle { width: 65px; height: 65px; border-radius: 50%; background: var(--neon-blue); display: flex; justify-content: center; align-items: center; cursor: pointer; box-shadow: 0 0 20px var(--neon-blue); font-size: 28px; }
+        .chat-box { position: absolute; bottom: 80px; right: 0; width: 350px; height: 480px; background: rgba(10, 15, 25, 0.95); backdrop-filter: blur(20px); border: 1px solid var(--border); border-radius: 15px; display: none; flex-direction: column; box-shadow: 0 20px 50px rgba(0,0,0,0.8); transform-origin: bottom right; }
+        .chat-header { padding: 15px; background: rgba(255,255,255,0.05); border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; }
+        .chat-messages { flex: 1; padding: 15px; overflow-y: auto; font-size: 14px; }
+        .chat-input-area { padding: 15px; border-top: 1px solid var(--border); display: flex; gap: 10px; }
+        .chat-input-area input { flex: 1; background: rgba(255,255,255,0.1); border: none; padding: 10px; border-radius: 5px; color: #fff; outline: none; }
+        .toast { position: fixed; top: 20px; left: 50%; transform: translateX(-50%) translateY(-20px); background: rgba(0,0,0,0.8); color: #fff; padding: 10px 30px; border-radius: 5px; opacity: 0; transition: 0.3s; z-index: 2000; border-bottom: 2px solid var(--neon-blue); }
+        .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+    </style>
+</head>
+<body>
+
+    <header>
+        <div class="lobby-title">游戏大厅</div>
+        
+        <div class="user-center">
+            <div class="avatar-wrapper">
+                <span id="username_display">用户载入中...</span>
+                <img src="https://api.dicebear.com/7.x/pixel-art/svg?seed=Felix" class="avatar">
+            </div>
+
+            <div class="profile-dropdown">
+                
+                <div class="info-module">
+                    <div class="info-label">用户名</div>
+                    <div class="info-value" id="val_username">#000000</div>
+                </div>
+
+                <div class="info-module">
+                    <div class="info-label">uid</div>
+                    <div class="info-value highlight" id="val_uid">0</div>
+                </div>
+
+                <div class="info-module">
+                    <div class="info-label">得分</div>
+                    <div class="info-value" id="val_score">0</div>
+                </div>
+
+                <div class="info-module">
+                    <div class="info-label">游戏总场数</div>
+                    <div class="info-value" id="val_total_games">0</div>
+                </div>
+
+                <div class="info-module">
+                    <div class="info-label">游戏胜利场数</div>
+                    <div class="info-value" id="val_win_games">0</div>
+                </div>
+
+                <button class="logout-btn" onclick="handleLogout()">退出登录</button>
+            </div>
+        </div>
+    </header>
+
+    <div class="sidebar">
+        <button class="side-btn" onclick="showToast('正在寻找对局...')">快速匹配</button>
+        <button class="side-btn" onclick="showToast('开发中...')">创建房间</button>
+        <button class="side-btn" onclick="showToast('开发中...')">加入房间</button>
+    </div>
+
+    <div class="main-stage">
+        <div class="match-btn-container">
+            <button class="match-btn" id="matchBtn">开始匹配</button>
+            <div class="ripple"></div>
+            <div class="ripple"></div>
+        </div>
+    </div>
+
+    <div class="chat-container">
+        <div class="chat-toggle" id="chatToggle">💬</div>
+        <div class="chat-box" id="chatBox">
+            <div class="chat-header"><span>世界聊天</span><span style="cursor: pointer; opacity: 0.5;" id="closeChat">✕</span></div>
+            <div class="chat-messages" id="msgList">
+                <div style="color: var(--neon-blue)">[系统]: 欢迎进入指挥大厅。</div>
+            </div>
+            <div class="chat-input-area">
+                <input type="text" id="chatInput" placeholder="在此输入消息...">
+            </div>
+        </div>
+    </div>
+
+    <script>
+        $(document).ready(function() {
+            // 页面载入时执行数据请求
+            requestUserData();
+
+            // 原有聊天框逻辑
+            $('#chatToggle').click(function() { $('#chatBox').fadeIn(300).css('display', 'flex'); $(this).hide(); });
+            $('#closeChat').click(function() { $('#chatBox').fadeOut(200); $('#chatToggle').fadeIn(300); });
+            $('#chatInput').on('keypress', function(e)
+            {
+                if(e.which == 13 && $(this).val() != "")
+                {
+                    $('#msgList').append(`<div><b style="color:#fff">我:</b> ${$(this).val()}</div>`);
+                    $(this).val('');
+                    $('#msgList').scrollTop($('#msgList')[0].scrollHeight);
+                }
+            });
+
+            // 原有匹配变色逻辑
+            let isMatching = false;
+            $('#matchBtn').click
+            (
+                function() 
+                {
+                    isMatching = !isMatching;
+                    $(this).toggleClass('active').text(isMatching ? '取消匹配' : '开始匹配');
+                    showToast(isMatching ? '正在匹配对手...' : '匹配已取消');
+                }
+            );
+        });
+
+        function requestUserData()
+        {
+            console.log("正在请求用户信息...");
+            
+            $.ajax
+            ({
+                url: "http://8.148.76.120:9091/info",
+                type: "GET",
+                success: function(res, status, xhr) 
+                {
+                    $('#username_display').text(res.name);
+                    $('#val_username').text(res.name);
+                    $('#val_uid').text(res.id);
+                    $('#val_score').text(res.score);
+                    $('#val_total_games').text(res.total_games);
+                    $('#val_win_games').text(res.win_games);
+                },
+                error: function(xhr)
+                {
+                    location.href = "login.html"; // 返回登录页
+                }
+            });
+        }
+
+        function handleLogout()
+        {
+            // location.href = "login.html"; // 返回登录页
+            if(confirm("确定要退出登录吗？"))
+            {
+                location.href = "login.html"; // 返回登录页
+            }
+        }
+
+        function showToast(msg)
+        {
+            const t = $('<div class="toast"></div>').text(msg).appendTo('body');
+            setTimeout(() => t.addClass('show'), 10);
+            setTimeout(() => { t.removeClass('show'); setTimeout(() => t.remove(), 400); }, 2000);
+        }
+    </script>
+</body>
+</html>

@@ -30,6 +30,7 @@ public:
         snprintf(buf, 1024, INSERT_USER_SQL, va["name"].asCString(), va["password"].asCString());
         {
             std::unique_lock<std::mutex> lock(_mt);
+            std::cout << buf << std::endl;
             bool ret = _mu.exec_mysql(buf);
             if(!ret)
             {
@@ -108,7 +109,7 @@ public:
         }
         MYSQL_ROW rows = mysql_fetch_row(res);
         va["id"] = std::stoi(rows[0]);
-        // va["password"] = rows[1];
+        va["name"] = std::string(name);
         va["score"] = std::stoi(rows[2]);
         va["total_games"] = std::stoi(rows[3]);
         va["win_games"] = std::stoi(rows[4]);
@@ -144,7 +145,7 @@ public:
         }
         MYSQL_ROW rows = mysql_fetch_row(res);
         va["name"] = rows[0];
-        // va["password"] = rows[1];
+        va["id"] = id;
         va["score"] = std::stoi(rows[2]);
         va["total_games"] = std::stoi(rows[3]);
         va["win_games"] = std::stoi(rows[4]);

@@ -1,0 +1,345 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>登录</title>
+    <style>
+        /* 基础样式重置 */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        body {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            background: linear-gradient(45deg, #0f0c29, #302b63, #24243e);
+            overflow: hidden;
+        }
+
+        /* 背景装饰球 */
+        .background-circles {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            z-index: -1;
+        }
+
+        .circle {
+            position: absolute;
+            border-radius: 50%;
+            filter: blur(80px);
+        }
+
+        .circle-1 { width: 300px; height: 300px; background: #ff0080; top: -100px; left: -100px; }
+        .circle-2 { width: 400px; height: 400px; background: #7928ca; bottom: -150px; right: -100px; }
+
+        /* 容器 */
+        .container {
+            position: relative;
+            width: 400px;
+            height: 500px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 20px;
+            backdrop-filter: blur(15px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            box-shadow: 0 25px 45px rgba(0, 0, 0, 0.2);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            padding: 40px;
+            transition: 0.5s;
+        }
+
+        .form-box {
+            width: 100%;
+            transition: 0.5s ease-in-out;
+        }
+
+        /* 隐藏表单的状态 */
+        .hidden {
+            display: none;
+            opacity: 0;
+            transform: translateY(20px);
+        }
+
+        h2 {
+            color: #fff;
+            margin-bottom: 30px;
+            text-align: center;
+            letter-spacing: 2px;
+            font-size: 1.8rem;
+        }
+
+        /* 输入框样式 */
+        .input-group {
+            position: relative;
+            margin-bottom: 25px;
+        }
+
+        .input-group input {
+            width: 100%;
+            padding: 12px 15px;
+            background: rgba(255, 255, 255, 0.2);
+            border: none;
+            outline: none;
+            border-radius: 10px;
+            color: #fff;
+            font-size: 1rem;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            transition: 0.3s;
+        }
+
+        .input-group input::placeholder {
+            color: rgba(255, 255, 255, 0.6);
+        }
+
+        .input-group input:focus {
+            background: rgba(255, 255, 255, 0.3);
+            border-color: #fff;
+        }
+
+        /* 按钮样式 */
+        .btn {
+            width: 100%;
+            padding: 12px;
+            border: none;
+            border-radius: 10px;
+            background: #fff;
+            color: #302b63;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: 0.3s;
+            margin-top: 10px;
+        }
+
+        .btn:hover {
+            background: #7928ca;
+            color: #fff;
+            box-shadow: 0 0 15px rgba(121, 40, 202, 0.6);
+        }
+
+        /* 切换链接 */
+        .switch-link {
+            margin-top: 20px;
+            color: rgba(255, 255, 255, 0.7);
+            font-size: 0.9rem;
+            text-align: center;
+        }
+
+        .switch-link a {
+            color: #fff;
+            text-decoration: none;
+            font-weight: 600;
+            cursor: pointer;
+        }
+
+        .switch-link a:hover {
+            text-decoration: underline;
+        }
+
+        /* Toast 弹窗基础样式 */
+        .toast {
+            position: fixed;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%) translateY(-20px);
+            background: rgba(0, 0, 0, 0.8); /* 黑色半透明 */
+            color: #fff;
+            padding: 10px 25px;
+            border-radius: 8px;
+            font-size: 14px;
+            z-index: 1000;
+            opacity: 0;
+            transition: all 0.4s ease;
+            pointer-events: none; /* 防止遮挡鼠标点击 */
+            backdrop-filter: blur(5px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+        }
+
+        /* 显示时的状态 */
+        .toast.show {
+            opacity: 1;
+            transform: translateX(-50%) translateY(0);
+        }
+
+    </style>
+</head>
+<body>
+
+    <div class="background-circles">
+        <div class="circle circle-1"></div>
+        <div class="circle circle-2"></div>
+    </div>
+
+    <div class="container">
+        <div id="loginForm" class="form-box">
+            <h2>欢迎回来</h2>
+            <form onsubmit="handleSubmit(event, '登录')">
+                <div class="input-group">
+                    <input type="text" id="loginName" placeholder="姓名" required>
+                </div>
+                <div class="input-group">
+                    <input type="password" id="loginPass" placeholder="密码" required>
+                </div>
+                <button type="submit" class="btn">立即登录</button>
+            </form>
+            <div class="switch-link">
+                还没有账号？ <a onclick="toggleForm('register')">立即注册</a>
+            </div>
+        </div>
+
+        <div id="registerForm" class="form-box hidden">
+            <h2>创建账号</h2>
+            <form onsubmit="handleSubmit(event, '注册')">
+                <div class="input-group">
+                    <input type="text" id="regName" placeholder="姓名" required>
+                </div>
+                <div class="input-group">
+                    <input type="password" id="regPass" placeholder="密码" required>
+                </div>
+                <button type="submit" class="btn">完成注册</button>
+            </form>
+            <div class="switch-link">
+                已有账号？ <a onclick="toggleForm('login')">返回登录</a>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://apps.bdimg.com/libs/jquery/2.1.4/jquery.min.js"></script>
+    <script>
+        // 切换表单逻辑
+        function toggleForm(type) {
+            const loginForm = document.getElementById('loginForm');
+            const registerForm = document.getElementById('registerForm');
+
+            if (type === 'register')
+            {
+                document.title = "注册";
+                loginForm.style.opacity = '0';
+                setTimeout(() => {
+                    loginForm.classList.add('hidden');
+                    registerForm.classList.remove('hidden');
+                    setTimeout(() => {
+                        registerForm.style.opacity = '1';
+                        registerForm.style.transform = 'translateY(0)';
+                    }, 50);
+                }, 400);
+            }
+            else
+            {
+                document.title = "登录";
+                registerForm.style.opacity = '0';
+                setTimeout(() => {
+                    registerForm.classList.add('hidden');
+                    loginForm.classList.remove('hidden');
+                    setTimeout(() => {
+                        loginForm.style.opacity = '1';
+                        loginForm.style.transform = 'translateY(0)';
+                    }, 50);
+                }, 400);
+            }
+        }
+
+        function showToast(message, duration = 2000)
+        {
+            // 创建元素
+            const toast = document.createElement('div');
+            toast.className = 'toast';
+            toast.innerText = message;
+            document.body.appendChild(toast);
+
+            // 触发动画 (稍微延迟一点点确保 transition 生效)
+            setTimeout(() => toast.classList.add('show'), 10);
+
+            // 定时移除
+            setTimeout(() => {
+                toast.classList.remove('show');
+                // 动画结束后从 DOM 中删除
+                setTimeout(() => {
+                    document.body.removeChild(toast);
+                }, 400);
+            }, duration);
+        }
+
+        function handleSubmit(event, type)
+        {
+            event.preventDefault(); // 阻止页面刷新
+
+            let name, password;
+            if (type === '登录') // 登录
+            {
+                var login_info = 
+                {
+                    name:document.getElementById('loginName').value,
+                    password:document.getElementById('loginPass').value
+                }
+                $.ajax
+                ({
+                    type: "post",
+                    url : "http://8.148.76.120:9091/login",
+                    data: JSON.stringify(login_info),
+                    success: function(res, status, xhr)
+                    {
+                        if(res.result == true)
+                        {
+                            showToast("登录成功！");
+                            location.href = "hall.html";
+                        }
+                        else
+                        {
+                            showToast(res.reason);
+                            document.getElementById('regName').value = '';
+                            document.getElementById('regPass').value = '';
+                        }
+                    },
+                    error: function(xhr)
+                    {
+                        showToast(JSON.stringify(xhr));
+                    }
+                });
+            }
+            else // 注册
+            {
+                var reg_info = 
+                {
+                    name:document.getElementById('regName').value,
+                    password:document.getElementById('regPass').value
+                }
+                $.ajax
+                ({
+                    type: "post",
+                    url : "http://8.148.76.120:9091/reg",
+                    data: JSON.stringify(reg_info),
+                    success: function(res, status, xhr)
+                    {
+                        if(res.result == true)
+                        {
+                            showToast("注册成功！");
+                            toggleForm('login') ;
+                        }
+                        else
+                        {
+                            showToast(res.reason);
+                            document.getElementById('regName').value = '';
+                            document.getElementById('regPass').value = '';
+                        }
+                    },
+                    error: function(xhr)
+                    {
+                        showToast(JSON.stringify(xhr));
+                    }
+                });
+            }
+        }
+    </script>
+</body>
+</html>

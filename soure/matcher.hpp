@@ -5,6 +5,7 @@
 #include<condition_variable>
 #include"session.hpp"
 #include"db.hpp"
+#include"room.hpp"
 
 template<class T>
 class Matcher_Queue

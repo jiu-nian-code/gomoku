@@ -1,5 +1,6 @@
 #pragma once
 #include"online.hpp"
+#define DEFAULT_TIMEOUT 30000
 
 typedef enum {UNLOGIN, LOGIN} ses_stu;
 class Session
@@ -40,10 +41,12 @@ public:
         return sp;
     }
     
-    session_ptr get_session_by_id(int id)
+    session_ptr get_session_by_sid(int sid)
     {
         std::unique_lock<std::mutex> lock(_mt);
-        return _session[id];
+        auto it = _session.find(sid);
+        if(it == _session.end()) return session_ptr();
+        return it->second;
     }
 
     void session_append(session_ptr sp)
@@ -52,11 +55,11 @@ public:
         _session.insert(std::make_pair(sp->get_sid(), sp));
     }
 
-    void remove_session(int id)
+    void remove_session(int sid)
     {
         std::unique_lock<std::mutex> lock(_mt);
-        std::cout << "remove_session" << std::endl;
-        _session.erase(id);
+        // std::cout << "remove_session" << std::endl;
+        _session.erase(sid);
     }
 
     void set_session_expire_time(int sid, int timeout)
@@ -93,12 +96,12 @@ public:
         }
     }
     
-    bool is_in_session(int sid) // for debug
-    {
-        auto it = _session.find(sid);
-        if(it == _session.end()) return false;
-        return true;
-    }
+    // bool is_in_session(int sid) // for debug
+    // {
+    //     auto it = _session.find(sid);
+    //     if(it == _session.end()) return false;
+    //     return true;
+    // }
 };
 
 int Session_Manager::_next_sid = 0;

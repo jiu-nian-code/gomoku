@@ -1,10 +1,11 @@
-#include"util.hpp"
-#include"db.hpp"
-#include"online.hpp"
-#include"room.hpp"
-#include"session.hpp"
-#include"matcher.hpp"
-#include"matcher.hpp"
+// #include"util.hpp"
+// #include"db.hpp"
+// #include"online.hpp"
+// #include"room.hpp"
+// #include"session.hpp"
+// #include"matcher.hpp"
+// #include"matcher.hpp"
+#include"server.hpp"
 
 void test_Mysql_Util()
 {
@@ -112,7 +113,7 @@ void handler_http(websocketsvr* server, websocketpp::connection_hdl hdl)
     sm_ptr->set_session_expire_time(sp->get_sid(), -1);
     sm_ptr->set_session_expire_time(sp->get_sid(), 3000);
     sleep(4);
-    std::cout << sm_ptr->is_in_session(sp->get_sid()) << std::endl;
+    // std::cout << sm_ptr->is_in_session(sp->get_sid()) << std::endl;
     // sleep(10);
     // std::cout << 3 << std::endl;
 }
@@ -164,8 +165,14 @@ void test_matcher()
     // mq.remove();
 }
 
+void test_server()
+{
+    gomoku_server gs("127.0.0.1", "thx", "thxTHX@0210", "gomoku_db", 3333, NULL, 0, "WWWROOT");
+    gs.start();
+}
+
 int main()
 {
-    test_matcher();
+    test_server();
     return 0;
 }

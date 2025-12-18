@@ -57,10 +57,9 @@ public:
     {
         if(!_mq) { DBG_LOG("mysql closed."); return false; }
         if(!exec) { DBG_LOG("Invalid string."); return false; }
-        if(mysql_query(_mq, exec) < 0)
+        if(mysql_query(_mq, exec) != 0)
         {
             DBG_LOG("statement execution error: %s", mysql_error(_mq));
-            close();
             return false;
         }
         return true;
