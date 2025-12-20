@@ -312,8 +312,8 @@ private:
     User_Table* _ut;
     int _room_id_alloc;
     // using room_ptr = std::shared_ptr<Room>;
-    std::unordered_map<int, room_ptr> _id_room;
-    std::unordered_map<int, int> _room_user;
+    std::unordered_map<int, room_ptr> _rid_room;
+    std::unordered_map<int, int> _user_room;
     std::mutex _mt;
 public:
     Room_Manager(Online_Manager* om, User_Table* ut) : _om(om), _ut(ut), _room_id_alloc(0) {}
@@ -335,9 +335,9 @@ public:
         std::unique_lock<std::mutex> lock(_mt);
         tmp->set_white(user1);
         tmp->set_black(user2);
-        _id_room[_room_id_alloc] = tmp;
-        _room_user[user1] = _room_id_alloc;
-        _room_user[user2] = _room_id_alloc;
+        _rid_room[_room_id_alloc] = tmp;
+        _user_room[user1] = _room_id_alloc;
+        _user_room[user2] = _room_id_alloc;
         ++_room_id_alloc;
         return tmp;
     }
@@ -345,8 +345,8 @@ public:
     room_ptr get_room_by_rid(int rid)
     {
         std::unique_lock<std::mutex> lock(_mt);
-        auto it = _id_room.find(rid);
-        if(it == _id_room.end())
+        auto it = _rid_room.find(rid);
+        if(it == _rid_room.end())
         {
             DBG_LOG("room%d is not exists.", rid);
             return room_ptr();
@@ -354,17 +354,29 @@ public:
         return it->second;
     }
 
+    // int get_rid_by_uid(int uid)
+    // {
+    //     std::unique_lock<std::mutex> lock(_mt);
+    //     auto it1 = _user_room.find(uid);
+    //     if(it1 == _user_room.end())
+    //     {
+    //         DBG_LOG("user %d is not in room.", uid);
+    //         return -1;
+    //     }
+    //     return it1->second;
+    // }
+
     room_ptr get_room_by_uid(int uid)
     {
         std::unique_lock<std::mutex> lock(_mt);
-        auto it1 = _room_user.find(uid);
-        if(it1 == _room_user.end())
+        auto it1 = _user_room.find(uid);
+        if(it1 == _user_room.end())
         {
             DBG_LOG("user %d is not in room.", uid);
             return room_ptr();
         }
-        auto it2 = _id_room.find(it1->second);
-        if(it2 == _id_room.end())
+        auto it2 = _rid_room.find(it1->second);
+        if(it2 == _rid_room.end())
         {
             DBG_LOG("room %d is not in room.", it1->second);
             return room_ptr();
@@ -388,9 +400,9 @@ public:
         int white = rp->get_white();
         int black = rp->get_black();
         std::unique_lock<std::mutex> lock(_mt);
-        _room_user.erase(white);
-        _room_user.erase(black);
-        _id_room.erase(rid);
+        _user_room.erase(white);
+        _user_room.erase(black);
+        _rid_room.erase(rid);
         return true;
     }
 };

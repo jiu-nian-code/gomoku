@@ -117,11 +117,11 @@ public:
         return true;
     }
 
-    bool select_by_id(int id, Json::Value& va)
+    bool select_by_uid(int uid, Json::Value& va)
     {
         #define SELECT_BY_ID_SQL "select name, password, score, total_games, win_games from user where id = %d;"
         char buf[1024] = {0};
-        snprintf(buf, 1024, SELECT_BY_ID_SQL, id);
+        snprintf(buf, 1024, SELECT_BY_ID_SQL, uid);
         MYSQL_RES* res = nullptr;
         {
             std::unique_lock<std::mutex> lock(_mt);
@@ -145,7 +145,7 @@ public:
         }
         MYSQL_ROW rows = mysql_fetch_row(res);
         va["name"] = rows[0];
-        va["id"] = id;
+        va["id"] = uid;
         va["score"] = std::stoi(rows[2]);
         va["total_games"] = std::stoi(rows[3]);
         va["win_games"] = std::stoi(rows[4]);

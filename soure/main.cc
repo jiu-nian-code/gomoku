@@ -65,7 +65,7 @@ void test_user_table()
     // << va["score"].asInt() << " total_games: " 
     // << va["total_games"] << " win_games: " 
     // << va["win_games"].asInt() << std::endl;
-    ut.select_by_id(va["id"].asInt(), ret);
+    ut.select_by_uid(va["id"].asInt(), ret);
     std::cout << "id: " << ret["id"].asInt() << " score: " 
     << ret["score"].asInt() << " total_games: " 
     << ret["total_games"] << " win_games: " 

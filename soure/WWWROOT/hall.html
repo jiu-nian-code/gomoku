@@ -50,99 +50,103 @@
         }
 
         /* --- 右上角头像与信息面板 --- */
-        .user-center {
-            position: relative;
-            padding: 10px 0;
-        }
-
+        .user-center { position: relative; padding: 10px 0; }
         .avatar-wrapper {
-            display: flex;
-            align-items: center;
-            gap: 12px;
-            cursor: pointer;
-            padding: 8px 20px;
-            border-radius: 40px;
-            background: var(--glass);
-            border: 1px solid var(--border);
-            transition: 0.3s;
+            display: flex; align-items: center; gap: 12px; cursor: pointer;
+            padding: 8px 20px; border-radius: 40px; background: var(--glass);
+            border: 1px solid var(--border); transition: 0.3s;
         }
-
         .avatar-wrapper:hover { border-color: var(--neon-blue); box-shadow: 0 0 15px rgba(0,210,255,0.3); }
         .avatar { width: 35px; height: 35px; border-radius: 50%; border: 2px solid var(--neon-blue); }
 
-        /* 纵向个人信息面板 */
         .profile-dropdown {
-            position: absolute;
-            top: 75px;
-            right: 0;
-            width: 240px;
-            background: var(--card-bg);
-            border: 1px solid var(--border);
-            border-radius: 15px;
-            padding: 15px;
-            display: none; /* 默认隐藏 */
-            flex-direction: column;
-            gap: 10px;
-            backdrop-filter: blur(25px);
-            box-shadow: 0 15px 40px rgba(0,0,0,1);
-            animation: slideDown 0.3s ease-out;
-            z-index: 1000;
+            position: absolute; top: 75px; right: 0; width: 240px;
+            background: var(--card-bg); border: 1px solid var(--border);
+            border-radius: 15px; padding: 15px; display: none; flex-direction: column; gap: 10px;
+            backdrop-filter: blur(25px); box-shadow: 0 15px 40px rgba(0,0,0,1);
+            animation: slideDown 0.3s ease-out; z-index: 1000;
         }
-
-        @keyframes slideDown {
-            from { opacity: 0; transform: translateY(-10px); }
-            to { opacity: 1; transform: translateY(0); }
-        }
-
-        /* 鼠标移入头像区域显示面板 */
         .user-center:hover .profile-dropdown { display: flex; }
-
-        /* 个人信息模块样式 */
-        .info-module {
-            background: rgba(255, 255, 255, 0.03);
-            border: 1px solid rgba(255, 255, 255, 0.05);
-            padding: 12px;
-            border-radius: 10px;
-            display: flex;
-            flex-direction: column;
-            gap: 4px;
-            transition: 0.3s;
-        }
-
-        .info-module:hover {
-            background: rgba(0, 210, 255, 0.05);
-            border-color: rgba(0, 210, 255, 0.2);
-        }
-
+        .info-module { background: rgba(255, 255, 255, 0.03); border: 1px solid rgba(255, 255, 255, 0.05); padding: 12px; border-radius: 10px; display: flex; flex-direction: column; gap: 4px; transition: 0.3s; }
         .info-label { font-size: 11px; color: rgba(255, 255, 255, 0.5); text-transform: uppercase; }
         .info-value { font-size: 16px; font-weight: bold; color: #fff; }
         .info-value.highlight { color: var(--neon-blue); text-shadow: 0 0 10px var(--neon-blue); }
 
-        /* 注销按钮 */
-        .logout-btn {
-            margin-top: 10px;
-            background: none;
-            border: 1px solid var(--neon-red);
-            color: var(--neon-red);
-            padding: 10px;
-            border-radius: 8px;
-            cursor: pointer;
-            font-weight: bold;
-            transition: 0.3s;
-        }
+        .logout-btn { margin-top: 10px; background: none; border: 1px solid var(--neon-red); color: var(--neon-red); padding: 10px; border-radius: 8px; cursor: pointer; font-weight: bold; transition: 0.3s; }
         .logout-btn:hover { background: var(--neon-red); color: #fff; }
 
-        /* --- 其他原有样式保持不变 (侧边栏、匹配按钮、聊天、Toast) --- */
-        /* 为了简洁，此处省略了上一个回答中完全重复的 CSS，实际应用中请合并 */
-        .sidebar { position: fixed; left: 0; top: 50%; transform: translateY(-50%); display: flex; flex-direction: column; gap: 25px; z-index: 90; }
-        .side-btn { width: 260px; height: 80px; background: linear-gradient(90deg, var(--neon-purple), var(--neon-blue)); border: none; border-radius: 0 40px 40px 0; color: white; font-size: 20px; font-weight: bold; cursor: pointer; display: flex; align-items: center; padding-left: 30px; transform: translateX(-180px); transition: 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275); box-shadow: 10px 0 20px rgba(0,0,0,0.5); }
-        .side-btn:hover { transform: translateX(-15px); padding-left: 50px; box-shadow: 0 0 30px var(--neon-blue); }
-        .main-stage { flex: 1; display: flex; justify-content: center; align-items: center; }
+        /* --- 左侧侧边栏 (激活态也收纳版) --- */
+        .sidebar { position: fixed; left: 0; top: 50%; transform: translateY(-50%); display: flex; flex-direction: column; gap: 20px; z-index: 90; }
+        
+        .side-btn { 
+            width: 260px; height: 75px; 
+            background: rgba(255, 255, 255, 0.05); 
+            border: none; border-radius: 0 40px 40px 0; 
+            color: rgba(255, 255, 255, 0.5); font-size: 18px; font-weight: bold; 
+            cursor: pointer; display: flex; align-items: center; padding-left: 30px; 
+            transform: translateX(-190px); /* 默认收进屏幕 */
+            transition: all 0.4s cubic-bezier(0.18, 0.89, 0.32, 1.28);
+            border-right: 2px solid transparent;
+            backdrop-filter: blur(5px);
+        }
+        
+        .side-btn:hover { 
+            transform: translateX(-15px); /* 鼠标移入滑出 */
+            color: #fff; background: rgba(255, 255, 255, 0.12);
+            box-shadow: 10px 0 30px rgba(0,0,0,0.5);
+        }
+
+        .side-btn.active {
+            transform: translateX(-190px); /* 激活态平时也收进去 */
+            color: var(--neon-blue);
+            background: rgba(0, 210, 255, 0.08);
+            border-right: 4px solid var(--neon-blue); /* 右侧边缘发光条区分 */
+        }
+        
+        .side-btn.active:hover {
+            transform: translateX(-15px); /* 激活态鼠标移入依然滑出 */
+            background: linear-gradient(90deg, var(--neon-purple), var(--neon-blue));
+            color: #fff;
+        }
+
+        /* --- 主舞台内容区 --- */
+        .main-stage { flex: 1; display: flex; justify-content: center; align-items: center; position: relative; }
+        
+        /* 页面切换逻辑 */
+        .page-content { 
+            position: absolute; width: 100%; height: 100%; 
+            display: none; justify-content: center; align-items: center; 
+            flex-direction: column; 
+        }
+        .page-content.active { display: flex; animation: fadeIn 0.5s ease; }
+        @keyframes fadeIn { from { opacity: 0; transform: scale(0.95); } to { opacity: 1; transform: scale(1); } }
+
+        /* --- 匹配按钮与波纹 (颜色随动版) --- */
         .match-btn-container { position: relative; width: 300px; height: 300px; display: flex; justify-content: center; align-items: center; }
-        .match-btn { width: 220px; height: 220px; border-radius: 50%; background: radial-gradient(circle, var(--neon-blue), var(--neon-purple)); border: none; color: white; font-size: 28px; font-weight: bold; cursor: pointer; z-index: 2; transition: 0.5s; box-shadow: 0 0 40px rgba(0, 210, 255, 0.5); }
-        .ripple { position: absolute; width: 220px; height: 220px; border-radius: 50%; border: 2px solid var(--neon-blue); animation: move-ripple 2s infinite; pointer-events: none; opacity: 0; }
+        
+        .match-btn { 
+            width: 220px; height: 220px; border-radius: 50%; 
+            background: radial-gradient(circle, var(--neon-blue), var(--neon-purple)); 
+            border: none; color: white; font-size: 28px; font-weight: bold; 
+            cursor: pointer; z-index: 2; transition: 0.5s; 
+            box-shadow: 0 0 40px rgba(0, 210, 255, 0.5); 
+        }
+
+        .ripple { 
+            position: absolute; width: 220px; height: 220px; border-radius: 50%; 
+            border: 2px solid var(--neon-blue); /* 初始蓝色 */
+            animation: move-ripple 2s infinite; pointer-events: none; opacity: 0; 
+            transition: border-color 0.4s;
+        }
+        .ripple:nth-child(2) { animation-delay: 0.6s; }
+
         @keyframes move-ripple { 0% { transform: scale(1); opacity: 0.8; } 100% { transform: scale(1.8); opacity: 0; } }
+
+        /* 重点：按钮激活时变红，且其后的波纹同步变红 */
         .match-btn.active { background: radial-gradient(circle, var(--neon-red), #b91d1d); box-shadow: 0 0 60px var(--neon-red); }
+        .match-btn.active ~ .ripple { border-color: var(--neon-red); }
+
+        /* --- 聊天、Toast 样式 --- */
         .chat-container { position: fixed; bottom: 30px; right: 30px; z-index: 1000; }
         .chat-toggle { width: 65px; height: 65px; border-radius: 50%; background: var(--neon-blue); display: flex; justify-content: center; align-items: center; cursor: pointer; box-shadow: 0 0 20px var(--neon-blue); font-size: 28px; }
         .chat-box { position: absolute; bottom: 80px; right: 0; width: 350px; height: 480px; background: rgba(10, 15, 25, 0.95); backdrop-filter: blur(20px); border: 1px solid var(--border); border-radius: 15px; display: none; flex-direction: column; box-shadow: 0 20px 50px rgba(0,0,0,0.8); transform-origin: bottom right; }
@@ -158,58 +162,47 @@
 
     <header>
         <div class="lobby-title">游戏大厅</div>
-        
         <div class="user-center">
             <div class="avatar-wrapper">
                 <span id="username_display">用户载入中...</span>
                 <img src="https://api.dicebear.com/7.x/pixel-art/svg?seed=Felix" class="avatar">
             </div>
-
             <div class="profile-dropdown">
-                
-                <div class="info-module">
-                    <div class="info-label">用户名</div>
-                    <div class="info-value" id="val_username">#000000</div>
-                </div>
-
-                <div class="info-module">
-                    <div class="info-label">uid</div>
-                    <div class="info-value highlight" id="val_uid">0</div>
-                </div>
-
-                <div class="info-module">
-                    <div class="info-label">得分</div>
-                    <div class="info-value" id="val_score">0</div>
-                </div>
-
-                <div class="info-module">
-                    <div class="info-label">游戏总场数</div>
-                    <div class="info-value" id="val_total_games">0</div>
-                </div>
-
-                <div class="info-module">
-                    <div class="info-label">游戏胜利场数</div>
-                    <div class="info-value" id="val_win_games">0</div>
-                </div>
-
+                <div class="info-module"><div class="info-label">用户名</div><div class="info-value" id="val_username">#000000</div></div>
+                <div class="info-module"><div class="info-label">uid</div><div class="info-value highlight" id="val_uid">0</div></div>
+                <div class="info-module"><div class="info-label">得分</div><div class="info-value" id="val_score">0</div></div>
+                <div class="info-module"><div class="info-label">游戏总场数</div><div class="info-value" id="val_total_games">0</div></div>
+                <div class="info-module"><div class="info-label">游戏胜利场数</div><div class="info-value" id="val_win_games">0</div></div>
                 <button class="logout-btn" onclick="handleLogout()">退出登录</button>
             </div>
         </div>
     </header>
 
     <div class="sidebar">
-        <button class="side-btn" onclick="showToast('正在寻找对局...')">快速匹配</button>
-        <button class="side-btn" onclick="showToast('开发中...')">创建房间</button>
-        <button class="side-btn" onclick="showToast('开发中...')">加入房间</button>
+        <button class="side-btn active" id="menu_match" onclick="switchPage('match')">快速匹配</button>
+        <button class="side-btn" id="menu_create" onclick="switchPage('create')">创建房间</button>
+        <button class="side-btn" id="menu_join" onclick="switchPage('join')">加入房间</button>
     </div>
 
-    <div class="main-stage">
-        <div class="match-btn-container">
-            <button class="match-btn" id="matchBtn">开始匹配</button>
-            <div class="ripple"></div>
-            <div class="ripple"></div>
+    <main class="main-stage">
+        <div id="page_match" class="page-content active">
+            <div class="match-btn-container">
+                <button class="match-btn" id="matchBtn">开始匹配</button>
+                <div class="ripple"></div>
+                <div class="ripple"></div>
+            </div>
         </div>
-    </div>
+
+        <div id="page_create" class="page-content">
+            <h2 style="color: var(--neon-blue)">创建房间</h2>
+            <p style="margin-top:20px; opacity:0.5">房间配置模块正在开发中...</p>
+        </div>
+
+        <div id="page_join" class="page-content">
+            <h2 style="color: var(--neon-blue)">房间列表</h2>
+            <p style="margin-top:20px; opacity:0.5">正在获取远程服务器数据...</p>
+        </div>
+    </main>
 
     <div class="chat-container">
         <div class="chat-toggle" id="chatToggle">💬</div>
@@ -225,8 +218,30 @@
     </div>
 
     <script>
-        $(document).ready(function() {
-            // 页面载入时执行数据请求
+        // --- 核心逻辑切换函数 (不影响后端逻辑) ---
+        function switchPage(pageName)
+        {
+            // 如果点的是当前页，直接返回
+            if($(`#menu_${pageName}`).hasClass('active')) return;
+
+            // 切换侧边栏按钮状态
+            $('.side-btn').removeClass('active');
+            $(`#menu_${pageName}`).addClass('active');
+
+            // 切换内容显隐
+            $('.page-content').removeClass('active');
+            $(`#page_${pageName}`).addClass('active');
+
+            showToast("已切换至: " + $(`#menu_${pageName}`).text());
+        }
+
+        var ws_url = "ws://" + location.host + "/hall";
+        var ws_hdl = null;
+        let isMatching = false;
+
+        $(document).ready(function()
+        {
+            // 保留你的原始请求逻辑
             requestUserData();
 
             // 原有聊天框逻辑
@@ -234,7 +249,7 @@
             $('#closeChat').click(function() { $('#chatBox').fadeOut(200); $('#chatToggle').fadeIn(300); });
             $('#chatInput').on('keypress', function(e)
             {
-                if(e.which == 13 && $(this).val() != "")
+                if(e.which == 13 && $(this).val() != "") 
                 {
                     $('#msgList').append(`<div><b style="color:#fff">我:</b> ${$(this).val()}</div>`);
                     $(this).val('');
@@ -242,49 +257,122 @@
                 }
             });
 
-            // 原有匹配变色逻辑
-            let isMatching = false;
-            $('#matchBtn').click
-            (
-                function() 
+            // 原有匹配变色逻辑 (现在的 CSS 会自动把 ripple 变红)
+            $('#matchBtn').click(function()
+            {
+                // isMatching = !isMatching;
+                // $(this).toggleClass('active').text(isMatching ? '取消匹配' : '开始匹配');
+                // showToast(isMatching ? '正在匹配对手...' : '匹配已取消');
+                if(isMatching == false)
                 {
-                    isMatching = !isMatching;
-                    $(this).toggleClass('active').text(isMatching ? '取消匹配' : '开始匹配');
-                    showToast(isMatching ? '正在匹配对手...' : '匹配已取消');
+                    var req_json = {
+                        optype : "match_start"
+                    }
+                    ws_hdl.send(JSON.stringify(req_json));
                 }
-            );
+                else
+                {
+                    var req_json = {
+                        optype : "match_stop"
+                    }
+                    ws_hdl.send(JSON.stringify(req_json));
+                }
+            });
         });
 
+        // var ws_url = "ws://" + location.host + "/hall";
+        // var ws_hdl = null;
         function requestUserData()
         {
             console.log("正在请求用户信息...");
-            
             $.ajax
             ({
                 url: "http://8.148.76.120:9091/info",
                 type: "GET",
-                success: function(res, status, xhr) 
-                {
+                success: function(res, status, xhr) {
                     $('#username_display').text(res.name);
                     $('#val_username').text(res.name);
                     $('#val_uid').text(res.id);
                     $('#val_score').text(res.score);
                     $('#val_total_games').text(res.total_games);
                     $('#val_win_games').text(res.win_games);
+
+                    ws_hdl = new WebSocket(ws_url);
+                    ws_hdl.onopen = ws_onopen;
+                    ws_hdl.onclose = ws_onclose;
+                    ws_hdl.onerror = ws_onerror;
+                    ws_hdl.onmessage = ws_onmessage;
                 },
-                error: function(xhr)
-                {
-                    location.href = "login.html"; // 返回登录页
+                error: function(xhr) {
+                    location.href = "login.html"; 
                 }
             });
         }
 
+        window.onbeforeunload = function() { if(ws_hdl) ws_hdl.close(); }
+        function ws_onopen()
+        {
+            // showToast("ws_onopen");
+        }
+        function ws_onclose()
+        {
+            // showToast("ws_onclose");
+        }
+        function ws_onerror()
+        {
+            // showToast("ws_onerror");
+        }
+
+        function ws_onmessage(evt)
+        {
+            var resp_json = JSON.parse(evt.data);
+            var $matchBtn = $('#matchBtn');
+
+            if(resp_json.result == false)
+            {
+                location.href = "login.html"; // 简单处理
+                return;
+            }
+            if(resp_json["optype"] == "hall_ready")
+            {
+                showToast("游戏大厅建立连接成功");
+            }
+            else if(resp_json["optype"] == "match_start")
+            {
+                showToast("加入匹配队列");
+                isMatching = true;
+                // $matchBtn.toggleClass('active').text(isMatching ? '取消匹配' : '开始匹配');
+                $matchBtn.addClass('active').text('取消匹配'); // 强制添加类名
+                showToast(isMatching ? '正在匹配对手...' : '匹配已取消');
+                return;
+            }
+            else if(resp_json["optype"] == "match_stop")
+            {
+                showToast("移出匹配队列");
+                isMatching = false;
+                // $matchBtn.toggleClass('active').text(isMatching ? '取消匹配' : '开始匹配');
+                $matchBtn.removeClass('active').text('开始匹配'); // 强制移除类名
+                showToast(isMatching ? '正在匹配对手...' : '匹配已取消');
+                return;
+            }
+            else if(resp_json["optype"] == "match_success")
+            {
+                showToast("匹配成功");
+                location.href = "game_room.html";
+            }
+            else
+            {
+                alert(JSON.stringify(resp_json));
+                location.href = "login.html"; // 简单处理
+                return;
+            }
+        }
+
         function handleLogout()
         {
-            // location.href = "login.html"; // 返回登录页
             if(confirm("确定要退出登录吗？"))
             {
-                location.href = "login.html"; // 返回登录页
+                location.href = "login.html";
             }
         }
 

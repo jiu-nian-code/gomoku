@@ -131,7 +131,7 @@ class gomoku_server
         }
         int uid = sp->get_uid();
         Json::Value user_info;
-        if(!_ut.select_by_id(uid, user_info))
+        if(!_ut.select_by_uid(uid, user_info))
         {
             DBG_LOG("select_by_id error.");
             http_resp(con, false, "info with sid can't found, please login again.", websocketpp::http::status_code::bad_request);
@@ -164,16 +164,15 @@ class gomoku_server
         con->set_status(websocketpp::http::status_code::ok);
     }
 
-    void handler_http(websocketpp::connection_hdl hdl)
+    void handle_http(websocketpp::connection_hdl hdl)
     {
-        std::cout << "handler http request." << std::endl;
+        INF_LOG("handler http request.");
         websocketsvr::connection_ptr con = _server.get_con_from_hdl(hdl);
-        // std::cout << con->get_request_body() << std::endl;
-        websocketpp::config::asio::request_type req = con->get_request();      
-        std::cout << "method: " << req.get_method() << std::endl;
-        std::cout << "uri: " << req.get_uri() << std::endl;
-        std::cout << "body: " << req.get_body() << std::endl;
-        std::cout << "cookie: " << req.get_header("Cookie") << std::endl;
+        websocketpp::config::asio::request_type req = con->get_request();
+        INF_LOG("method: %s", req.get_method().c_str());
+        INF_LOG("uri: %s", req.get_uri().c_str());
+        INF_LOG("body: %s", req.get_body().c_str());
+        INF_LOG("cookie: %s", req.get_header("Cookie").c_str());
         std::string method = req.get_method();
         std::string uri = req.get_uri();
         if(method == "POST", uri == "/reg")
@@ -194,14 +193,209 @@ class gomoku_server
         }
     }
 
-    void ws_handler_open(websocketpp::connection_hdl hdl)
+    void ws_resp(const websocketsvr::connection_ptr& con, Json::Value& resp)
     {
-
+        std::string body;
+        Json_Util::serialize(resp, body);
+        // INF_LOG(body.c_str());
+        con->send(body);
     }
 
-    void ws_handler_close(websocketpp::connection_hdl hdl) {}
+    session_ptr get_session_by_cookie(const websocketsvr::connection_ptr& con, const std::string& optype)
+    {
+        websocketpp::config::asio::request_type req = con->get_request();
+        std::string cookie = req.get_header("Cookie");
+        if(cookie.empty()) // 取出cookie，没有就是错误请求
+        {
+            DBG_LOG("get_header error.");
+            Json::Value resp;
+            resp["optype"] = optype;
+            resp["result"] = false;
+            resp["reason"] = "get cookie fail, please login again.";
+            ws_resp(con, resp);
+            return session_ptr();
+        }
+        std::string str_sid;
+        if(!get_cookie_value(cookie, "SID", str_sid)) // 获取cookie中的sid，没有就是错误cookie
+        {
+            DBG_LOG("get_cookie_value error.");
+            Json::Value resp;
+            resp["optype"] = optype;
+            resp["result"] = false;
+            resp["reason"] = "get sid in cookie fail, please login again.";
+            ws_resp(con, resp);
+            return session_ptr();
+        }
+        int sid = std::stoi(str_sid);
+        session_ptr sp = _sm.get_session_by_sid(sid);
+        if(sp.get() == nullptr) // 根据sid获取session，没有就是session超时销毁了，登陆失效，重新登录
+        {
+            DBG_LOG("get_session_by_sid error.");
+            Json::Value resp;
+            resp["optype"] = optype;
+            resp["result"] = false;
+            resp["reason"] = "get session by sid fail, please login again.";
+            ws_resp(con, resp);
+            return session_ptr();
+        }
+        return sp;
+    }
 
-    void ws_handler_message(websocketpp::connection_hdl hdl, std::shared_ptr<websocketpp::config::core::message_type> msg) {}
+    void ws_open_hall(websocketsvr::connection_ptr& con)
+    {
+        session_ptr sp = get_session_by_cookie(con, "hall_ready");
+        if(sp.get() == nullptr) return;
+        if(_om.is_in_hall(sp->get_uid()) || _om.is_in_room(sp->get_uid()))
+        {
+            DBG_LOG("repeated login.");
+            Json::Value resp;
+            resp["optype"] = "hall_ready";
+            resp["result"] = false;
+            resp["reason"] = "repeated login!";
+            return ws_resp(con, resp);
+        }
+        _om.enter_hall(sp->get_uid(), con);
+        Json::Value resp;
+        resp["optype"] = "hall_ready";
+        resp["result"] = true;
+        ws_resp(con, resp);
+        _sm.set_session_expire_time(sp->get_sid(), SESSION_FOREVER);
+    }
+
+    void ws_open_room(websocketsvr::connection_ptr& con)
+    {
+        session_ptr sp = get_session_by_cookie(con, "hall_ready");
+        if(sp.get() == nullptr) return;
+        Json::Value resp;
+        int uid = sp->get_uid();
+        if(_om.is_in_hall(uid) || _om.is_in_room(uid))
+        {
+            DBG_LOG("repeated login.");
+            resp["optype"] = "room_ready";
+            resp["result"] = false;
+            resp["reason"] = "repeated login!";
+            return ws_resp(con, resp);
+        }
+        Room_Manager::room_ptr rp = _rm.get_room_by_uid(uid);
+        if(rp.get() == nullptr)
+        {
+            DBG_LOG("room not found.");
+            resp["optype"] = "room_ready";
+            resp["result"] = false;
+            resp["reason"] = "room not found.";
+            return ws_resp(con, resp);
+        }
+        _om.enter_room(uid, con);
+        _sm.set_session_expire_time(sp->get_sid(), SESSION_FOREVER);
+        resp["optype"] = "room_ready";
+        resp["room_id"] = rp->get_room_id();
+        resp["uid"] = uid;
+        resp["white_id"] = rp->get_white();
+        resp["black_id"] = rp->get_black();
+        return ws_resp(con, resp);
+    }
+
+    void ws_handle_open(websocketpp::connection_hdl hdl)
+    {
+        INF_LOG("open websocket.");
+        websocketsvr::connection_ptr con = _server.get_con_from_hdl(hdl);
+        websocketpp::config::asio::request_type req = con->get_request();
+        // std::string method = req.get_method();
+        std::string uri = req.get_uri();
+        if(uri == "/hall")
+        {
+            ws_open_hall(con);
+        }
+        else if(uri == "/room")
+        {
+            ws_open_room(con);
+        }
+    }
+
+    void ws_close_hall(const websocketsvr::connection_ptr& con)
+    {
+        session_ptr sp = get_session_by_cookie(con, "hall_close");
+        if(sp.get() == nullptr) return;
+        _om.exit_hall(sp->get_uid());
+        _sm.set_session_expire_time(sp->get_sid(), DEFAULT_TIMEOUT);
+    }
+
+    void ws_handle_close(websocketpp::connection_hdl hdl)
+    {
+        INF_LOG("close websocket.");
+        websocketsvr::connection_ptr con = _server.get_con_from_hdl(hdl);
+        websocketpp::config::asio::request_type req = con->get_request();
+        std::string uri = req.get_uri();
+        if(uri == "/hall")
+        {
+            return ws_close_hall(con);
+        }
+        else if(uri == "/room")
+        {
+
+        }
+    }
+
+    void ws_message_hall(const websocketsvr::connection_ptr& con, std::shared_ptr<websocketpp::config::core::message_type> msg)
+    {
+        session_ptr sp = get_session_by_cookie(con, "handle_request");
+        if(sp.get() == nullptr) return;
+        std::string req = msg->get_payload();
+        Json::Value req_json;
+        Json::Value resp;
+        if(!Json_Util::unserialize(req, req_json))
+        {
+            DBG_LOG("unserialize error.");
+            resp["optype"] = "handle_request";
+            resp["result"] = false;
+            resp["reason"] = "bad request.";
+            return ws_resp(con, resp);
+        }
+        if(!req_json["optype"].isNull() && req_json["optype"].asString() == "match_start")
+        {
+            if(!_mqm.add(sp->get_uid())) // 一般来说就不可能错误，session创建必查数据库，出错了就不是客户端的问题
+            {
+                DBG_LOG("mqm::add error.");
+                return;
+            }
+            resp["optype"] = "match_start";
+            resp["result"] = true;
+        }
+        else if(!req_json["optype"].isNull() && req_json["optype"].asString() == "match_stop")
+        {
+            if(!_mqm.del(sp->get_uid()))
+            {
+                DBG_LOG("mqm::del error.");
+                return;
+            }
+            resp["optype"] = "match_stop";
+            resp["result"] = true;
+        }
+        else
+        {
+            DBG_LOG("unknow optype.");
+            resp["optype"] = "unknow";
+            resp["result"] = false;
+            resp["reason"] = "unknow optype.";
+        }
+        return ws_resp(con, resp);
+    }
+
+    void ws_handle_message(websocketpp::connection_hdl hdl, std::shared_ptr<websocketpp::config::core::message_type> msg)
+    {
+        INF_LOG("handle websocket request.");
+        websocketsvr::connection_ptr con = _server.get_con_from_hdl(hdl);
+        websocketpp::config::asio::request_type req = con->get_request();
+        std::string uri = req.get_uri();
+        if(uri == "/hall")
+        {
+            return ws_message_hall(con, msg);
+        }
+        else
+        {
+
+        }
+    }
 public:
     gomoku_server(const char *host, const char *user, 
         const char *passwd, const char *db, 
@@ -216,10 +410,10 @@ public:
         _server.set_access_channels(websocketpp::log::alevel::none);
         _server.init_asio();
         _server.set_reuse_addr(true);
-        _server.set_http_handler(std::bind(&gomoku_server::handler_http, this, std::placeholders::_1));
-        _server.set_open_handler(std::bind(&gomoku_server::ws_handler_open, this, std::placeholders::_1));
-        _server.set_close_handler(std::bind(&gomoku_server::ws_handler_close, this, std::placeholders::_1));
-        _server.set_message_handler(std::bind(&gomoku_server::ws_handler_message, this, std::placeholders::_1, std::placeholders::_2));
+        _server.set_http_handler(std::bind(&gomoku_server::handle_http, this, std::placeholders::_1));
+        _server.set_open_handler(std::bind(&gomoku_server::ws_handle_open, this, std::placeholders::_1));
+        _server.set_close_handler(std::bind(&gomoku_server::ws_handle_close, this, std::placeholders::_1));
+        _server.set_message_handler(std::bind(&gomoku_server::ws_handle_message, this, std::placeholders::_1, std::placeholders::_2));
     }
 
     void start()

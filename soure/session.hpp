@@ -1,6 +1,7 @@
 #pragma once
 #include"online.hpp"
 #define DEFAULT_TIMEOUT 30000
+#define SESSION_FOREVER -1
 
 typedef enum {UNLOGIN, LOGIN} ses_stu;
 class Session

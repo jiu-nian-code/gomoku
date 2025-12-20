@@ -80,7 +80,7 @@ class Matcher_Queue_Manager
             }
             bool ret1 = _om->is_in_hall(uid1); // 判断是否掉线
             bool ret2 = _om->is_in_hall(uid2);
-            if(!ret1 || !ret2)
+            if(!ret1 && !ret2)
             {
                 ERR_LOG("uid1 uid2 disconnection.");
                 continue;
@@ -94,6 +94,13 @@ class Matcher_Queue_Manager
             if(!ret2)
             {
                 ERR_LOG("uid2 disconnection.");
+                mq.push(uid1);
+                continue;
+            }
+            // TODO
+            if(uid1 == uid2)
+            {
+                ERR_LOG("the same user repeatedly joins the matching queue.");
                 mq.push(uid1);
                 continue;
             }
@@ -136,7 +143,7 @@ public:
     bool add(int uid)
     {
         Json::Value va;
-        if(!_ut->select_by_id(uid, va))
+        if(!_ut->select_by_uid(uid, va))
         {
             ERR_LOG("select_by_id error");
             return false;
@@ -160,7 +167,7 @@ public:
     bool del(int uid)
     {
         Json::Value va;
-        if(!_ut->select_by_id(uid, va))
+        if(!_ut->select_by_uid(uid, va))
         {
             ERR_LOG("select_by_id error");
             return false;

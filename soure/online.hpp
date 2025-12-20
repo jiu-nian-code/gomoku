@@ -14,74 +14,66 @@ class Online_Manager
     std::unordered_map<int, websocketsvr::connection_ptr> _game_hall;
     std::mutex _mt;
 public:
-    void enter_room(int id, websocketsvr::connection_ptr& con)
+    void enter_room(int uid, websocketsvr::connection_ptr& con)
     {
         std::unique_lock<std::mutex> lock(_mt);
-        _game_room[id] = con;
+        _game_room[uid] = con;
     }
 
-    void enter_hall(int id, websocketsvr::connection_ptr& con)
+    void enter_hall(int uid, websocketsvr::connection_ptr& con)
     {
         std::unique_lock<std::mutex> lock(_mt);
-        _game_hall[id] = con;
+        _game_hall[uid] = con;
     }
 
-    void exit_room(int id)
+    void exit_room(int uid)
     {
         std::unique_lock<std::mutex> lock(_mt);
-        _game_room.erase(id);
+        _game_room.erase(uid); // 没有返回0，不会报错
     }
 
-    void exit_hall(int id)
+    void exit_hall(int uid)
     {
         std::unique_lock<std::mutex> lock(_mt);
-        _game_hall.erase(id);
+        _game_hall.erase(uid);
     }
 
-    bool is_in_room(int id)
+    bool is_in_room(int uid)
     {
         std::unique_lock<std::mutex> lock(_mt);
-        auto it = _game_room.find(id);
-        if(it == _game_room.end())
-        {
-            DBG_LOG("the user of this id is not exists in room.");
-            return false;
-        }
+        auto it = _game_room.find(uid);
+        if(it == _game_room.end()) return false;
         return true;
     }
 
-    bool is_in_hall(int id)
+    bool is_in_hall(int uid)
     {
         std::unique_lock<std::mutex> lock(_mt);
-        auto it = _game_hall.find(id);
-        if(it == _game_hall.end())
-        {
-            DBG_LOG("the user of this id is not exists in hall.");
-            return false;
-        }
+        auto it = _game_hall.find(uid);
+        if(it == _game_hall.end()) return false;
         return true;
     }
 
-    bool get_conn_from_room(int id, websocketsvr::connection_ptr& con)
+    bool get_conn_from_room(int uid, websocketsvr::connection_ptr& con)
     {
         std::unique_lock<std::mutex> lock(_mt);
-        auto it = _game_room.find(id);
+        auto it = _game_room.find(uid);
         if(it == _game_room.end())
         {
-            DBG_LOG("the user of this id is not exists in room.");
+            DBG_LOG("the user of this uid is not exists in room.");
             return false;
         }
         con = it->second;
         return true;
     }
 
-    bool get_conn_from_hall(int id, websocketsvr::connection_ptr& con)
+    bool get_conn_from_hall(int uid, websocketsvr::connection_ptr& con)
     {
         std::unique_lock<std::mutex> lock(_mt);
-        auto it = _game_hall.find(id);
+        auto it = _game_hall.find(uid);
         if(it == _game_hall.end())
         {
-            DBG_LOG("the user of this id is not exists in hall.");
+            DBG_LOG("the user of this uid is not exists in hall.");
             return false;
         }
         con = it->second;
