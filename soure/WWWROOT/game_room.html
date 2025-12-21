@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>量子对弈中心 - 高亮清晰版</title>
+    <title>game_room</title>
     <script src="https://apps.bdimg.com/libs/jquery/2.1.4/jquery.min.js"></script>
     <style>
         :root {
@@ -105,9 +105,9 @@
 <body>
 
     <header>
-        <div style="font-size: 18px; font-weight: bold; color: var(--neon-blue); letter-spacing: 2px;">NEON GOMOKU COMMAND</div>
-        <div id="game_screen" style="font-size: 14px; color: var(--neon-blue); font-weight: bold;">[ SYSTEM READY ]</div>
-        <button class="exit-btn" onclick="handleExit()">终止链接</button>
+        <div style="font-size: 18px; font-weight: bold; color: var(--neon-blue); letter-spacing: 2px;">游戏房间</div>
+        <div id="game_screen" style="font-size: 14px; color: var(--neon-blue); text-align: center; font-weight: bold;">等待连接</div>
+        <button class="exit-btn" onclick="handleExit()">退出房间</button>
     </header>
 
     <div class="sys-toast" id="toast"></div>
@@ -116,10 +116,10 @@
         <div class="avatar-frame">
             <img src="https://via.placeholder.com/100/00f2ff/000000?text=USER">
             <div class="hologram-card">
-                <p style="color:var(--neon-blue); margin-bottom:10px; border-bottom:1px solid #333;">身份验证: 通过</p>
-                <p>UID: <span id="my_uid_val">P-01</span></p>
-                <p>阶级: 高级指挥官</p>
-                <p>战斗纪录: 稳定</p>
+                <p style="color:var(--neon-blue); margin-bottom:10px; border-bottom:1px solid #333;" id="my_name_val">己方用户名</p>
+                <p>UID：<span id="my_uid_val">0</span></p>
+                <p>分数：<span id="my_score_val">0</span></p>
+                <p>胜率：<span id="my_win_rate_val">0</span>%</p>
             </div>
         </div>
         <div style="margin-top:10px; font-size:12px; color:var(--neon-blue); text-shadow: 0 0 5px var(--neon-blue);">COMMANDER</div>
@@ -129,10 +129,10 @@
         <div class="avatar-frame">
             <img src="https://via.placeholder.com/100/ff4757/000000?text=HOSTILE">
             <div class="hologram-card">
-                <p style="color:var(--neon-blue); margin-bottom:10px; border-bottom:1px solid #333;">目标锁定: 确认</p>
-                <p>UID: <span id="peer_uid_val">P-02</span></p>
-                <p>胜率: 64.2%</p>
-                <p>战力评估: 极高</p>
+                <p style="color:var(--neon-blue); margin-bottom:10px; border-bottom:1px solid #333;" id="op_name_val">对方用户名</p>
+                <p>UID：<span id="op_uid_val">0</span></p>
+                <p>分数：<span id="op_score_val">0</span></p>
+                <p>胜率：<span id="op_win_rate_val">0</span>%</p>
             </div>
         </div>
         <div style="margin-top:10px; font-size:12px; color:var(--neon-red); text-shadow: 0 0 5px var(--neon-red);">OPPONENT</div>
@@ -146,16 +146,16 @@
 
     <div class="chat-system">
         <div class="chat-min" id="chatMin" onclick="toggleChat(true)">
-            <div id="lastMsg" style="font-size:13px; color:var(--neon-blue);">正在监听通信频道...</div>
+            <div id="lastMsg" style="font-size:13px; color:var(--neon-blue);">聊天室</div>
         </div>
         <div class="chat-max" id="chatMax">
             <div style="padding:15px; border-bottom:1px solid var(--glass-border); display:flex; justify-content:space-between;">
-                <span>加密通信终端</span>
+                <span>聊天室</span>
                 <span style="cursor:pointer" onclick="toggleChat(false)">[ _ ]</span>
             </div>
             <div class="history" id="chatContent"></div>
             <div class="input-row">
-                <input type="text" id="chatInput" placeholder="输入加密指令...">
+                <input type="text" id="chatInput" placeholder="输入信息发送...">
                 <button onclick="sendChat()">发送</button>
             </div>
         </div>
@@ -165,32 +165,112 @@
         // ==========================================
         // 配置逻辑
         // ==========================================
-        const OFFLINE_MODE = true; // 离线点击测试开关
+        const OFFLINE_MODE = false; // 离线点击测试开关
         const BOARD_SIZE = 15;
         const CANVAS_PX = 600;
         const STEP = CANVAS_PX / BOARD_SIZE; 
 
         let chessBoard = [];
-        let is_me = true; 
+        let is_me = false;
+        let is_over = false;
         let mx = -1, my = -1; 
         
         const canvas = document.getElementById('chess');
         const context = canvas.getContext('2d');
-        let ws_hdl = null;
         let room_info = null;
 
-        $(document).ready(function() {
-            initBoard();
-            renderLoop();
-            
-            if (OFFLINE_MODE) {
-                showToast("单机测试模式已开启");
-                updateScreenStatus(true);
-            } else {
-                connectWebSocket();
-            }
-            $('#chatInput').on('keypress', e => { if(e.which == 13) sendChat(); });
+        $(document).ready(function()
+        {
+            requestUserData();
         });
+
+        function requestUserData()
+        {
+            console.log("正在请求用户信息...");
+            $.ajax
+            ({
+                url: "http://8.148.76.120:9091/room/info",
+                type: "GET",
+                success: function(res, status, xhr) {
+                    if(res.result == false)
+                    {
+                        alshowToastert("用户信息载入错误");
+                        location.replace("/hall.html");
+                        return;
+                    }
+                    else if(res.uid == res.black_id)
+                    {
+                        $('#my_name_val').text(res.black_name);
+                        $('#my_uid_val').text(res.black_id);
+                        $('#my_score_val').text(res.black_score);
+                        let black_win_rate = null;
+                        if(res.black_total_games != 0)
+                        {
+                            black_win_rate = (res.black_win_games / res.black_total_games * 100).toFixed(2);
+                        }
+                        else
+                        {
+                            black_win_rate = 0;
+                        }
+                        $('#my_win_rate_val').text(black_win_rate);
+
+                        $('#op_name_val').text(res.white_name);
+                        $('#op_uid_val').text(res.white_id);
+                        $('#op_score_val').text(res.white_score);
+                        let white_win_rate = null;
+                        if(res.white_total_games != 0)
+                        {
+                            white_win_rate = (res.white_win_games / res.white_total_games * 100).toFixed(2);
+                        }
+                        else
+                        {
+                            white_win_rate = 0;
+                        }
+                        $('#op_win_rate_val').text(white_win_rate);
+                    }
+                    else if(res.uid == res.white_id)
+                    {
+                        $('#my_name_val').text(res.white_name);
+                        $('#my_uid_val').text(res.white_id);
+                        $('#my_score_val').text(res.white_score);
+                        let white_win_rate = null;
+                        if(res.white_total_games != 0)
+                        {
+                            white_win_rate = (res.white_win_games / res.white_total_games * 100).toFixed(2);
+                        }
+                        else
+                        {
+                            white_win_rate = 0;
+                        }
+                        $('#my_win_rate_val').text(white_win_rate);
+
+                        $('#op_name_val').text(res.black_name);
+                        $('#op_uid_val').text(res.black_id);
+                        $('#op_score_val').text(res.black_score);
+                        let black_win_rate = null;
+                        if(res.black_total_games != 0)
+                        {
+                            black_win_rate = (res.black_win_games / res.black_total_games * 100).toFixed(2);
+                        }
+                        else
+                        {
+                            black_win_rate = 0;
+                        }
+                        $('#op_win_rate_val').text(black_win_rate);
+                    }
+                    else
+                    {
+                        showToast("未知错误");
+                        return;
+                    }
+                },
+                error: function(xhr) {
+                    showToast("用户信息获取错误");
+                    location.replace("/hall.html");
+                    return;
+                }
+            });
+        }
 
         function initBoard() {
             for (let i = 0; i < BOARD_SIZE; i++) {
@@ -283,39 +363,120 @@
         // ==========================================
         // 业务交互
         // ==========================================
-        canvas.onclick = function (e) {
+        canvas.onclick = function (e)
+        {
+            if(is_over) return;
+            if (!is_me) { showToast("等待对方走棋..."); return; }
             let col = Math.floor(e.offsetX / STEP);
             let row = Math.floor(e.offsetY / STEP);
 
             if (row < 0 || row >= BOARD_SIZE || col < 0 || col >= BOARD_SIZE) return;
             if (chessBoard[row][col] != 0) return;
 
-            if (OFFLINE_MODE) {
-                let count = chessBoard.flat().filter(v => v !== 0).length;
-                chessBoard[row][col] = (count % 2 === 0) ? 1 : 2; // 黑先白后
-            } else {
-                if (!is_me) { showToast("等待同步..."); return; }
-                sendChess(row, col);
-            }
+            sendChess(row, col);
         };
+
+        function sendChess(r, c)
+        {
+            var chess_info = {
+                optype: "put_chess",
+                room_id: room_info.room_id,
+                uid: room_info.uid,
+                x : r,
+                y : c
+            }
+            ws_hdl.send(JSON.stringify(chess_info));
+        }
+
+        var ws_url = "ws://" + location.host + "/room";
+        var ws_hdl = new WebSocket(ws_url);
+
+        // window.onbeforeunload = function() { if(ws_hdl) ws_hdl.close(); }
+        ws_hdl.onopen = function()
+        {
+            showToast("房间长连接建立成功");
+        }
+
+        ws_hdl.onclose = function()
+        {
+            showToast("房间长连接断开");
+        }
+
+        ws_hdl.onerror = function()
+        {
+            showToast("房间长连接出错");
+        }
+
+        ws_hdl.onmessage = function(evt)
+        {
+            info = JSON.parse(evt.data);
+            console.log(JSON.stringify(info));
+            if(info.optype == "room_ready")
+            {
+                if(info.result == false)
+                {
+                    showToast(info.reason);
+                    return;
+                }
+                room_info = info;
+                is_me = room_info.uid == room_info.white_id ? true : false;
+                updateScreenStatus(is_me);
+                initBoard();
+                renderLoop();
+            }
+            else if(info.optype == "put_chess")
+            {
+                if(info.result == false)
+                {
+                    showToast(info.reason);
+                    location.replace("/hall.html");
+                    return;
+                }
+                if(info.x != -1 && info.y != -1) chessBoard[info.x][info.y] = (info.uid == room_info.black_id) ? 1 : 2; // 1黑2白
+                if(info.x != -1 && info.y != -1) is_me = !is_me;
+                updateScreenStatus(is_me);
+                if(info.winner == 0) return;
+                is_over = true;
+                if(room_info.uid == info.winner)
+                {
+                    showToast(info.reason);
+                    // location.replace("/hall.html");
+                }
+                else
+                {
+                    showToast("lose");
+                    // location.replace("/hall.html");
+                }
+            }
+            else if(info.optype == "chat")
+            {
+                if(info.result == false)
+                {
+                    showToast(info.reason);
+                    return;
+                }
+                let name = (info.uid == room_info.uid ? $('#my_name_val').text() : $('#op_name_val').text());
+                renderMsg(name, info.message, info.uid == room_info.uid);
+            }
+        }
 
         canvas.onmousemove = e => { mx = e.offsetX; my = e.offsetY; };
         canvas.onmouseleave = () => { mx = -1; my = -1; };
 
         function handleExit() {
-            if(confirm("警告：正在脱离量子战场。确认终止连接？")) {
+            if(confirm("警告：游戏中途退出判负")) {
                 if(ws_hdl) ws_hdl.close();
-                location.replace("/game_hall.html");
+                location.replace("/hall.html");
             }
         }
 
         function sendChat() {
             let val = $('#chatInput').val();
             if(!val) return;
-            if(OFFLINE_MODE) renderMsg("LOCAL", val, true);
-            else {
+            // if(OFFLINE_MODE) renderMsg("LOCAL", val, true);
+            // else {
                 ws_hdl.send(JSON.stringify({ optype: "chat", room_id: room_info.room_id, uid: room_info.uid, message: val }));
-            }
+            // }
             $('#chatInput').val('');
         }
 
@@ -326,13 +487,15 @@
             $('#lastMsg').text(`${user}: ${text}`);
         }
 
-        function updateScreenStatus(me) {
+        function updateScreenStatus(me)
+        {
             let screen = document.getElementById("game_screen");
-            screen.innerHTML = me ? "[ YOUR TURN ]" : "[ SYNCING... ]";
+            screen.innerHTML = me ? "[ 你的回合 ]" : "[ 对方回合 ]";
             screen.style.color = me ? "var(--neon-blue)" : "rgba(255,255,255,0.5)";
         }
 
-        function toggleChat(show) {
+        function toggleChat(show)
+        {
             if(show) { $('#chatMax').fadeIn(200).css('display', 'flex'); $('#chatMin').hide(); }
             else { $('#chatMax').hide(); $('#chatMin').show(); }
         }
@@ -340,6 +503,27 @@
         function showToast(txt) {
             $('#toast').text(txt).fadeIn(300).delay(2500).fadeOut(300);
         }
+
+        // function showToast(message, duration = 2000)
+        // {
+        //     // 创建元素
+        //     const toast = document.createElement('div');
+        //     toast.className = 'toast';
+        //     toast.innerText = message;
+        //     document.body.appendChild(toast);
+
+        //     // 触发动画 (稍微延迟一点点确保 transition 生效)
+        //     setTimeout(() => toast.classList.add('show'), 10);
+
+        //     // 定时移除
+        //     setTimeout(() => {
+        //         toast.classList.remove('show');
+        //         // 动画结束后从 DOM 中删除
+        //         setTimeout(() => {
+        //             document.body.removeChild(toast);
+        //         }, 400);
+        //     }, duration);
+        // }
     </script>
 </body>
 </html>

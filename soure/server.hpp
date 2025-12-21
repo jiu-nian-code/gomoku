@@ -104,7 +104,7 @@ class gomoku_server
         return false;
     }
 
-    void info_handle(const websocketsvr::connection_ptr& con)
+    void hall_info_handle(const websocketsvr::connection_ptr& con)
     {
         websocketpp::config::asio::request_type req = con->get_request();
         std::string cookie = req.get_header("Cookie");
@@ -139,6 +139,76 @@ class gomoku_server
         }
         std::string str;
         Json_Util::serialize(user_info, str);
+        con->set_body(str);
+        con->set_status(websocketpp::http::status_code::ok);
+        con->append_header("Content-Type", "application/json");
+    }
+
+    void room_info_handle(const websocketsvr::connection_ptr& con)
+    {
+        websocketpp::config::asio::request_type req = con->get_request();
+        std::string cookie = req.get_header("Cookie");
+        if(cookie.empty())
+        {
+            DBG_LOG("get_header error.");
+            http_resp(con, false, "get cookie fail, please login again.", websocketpp::http::status_code::bad_request);
+            return;
+        }
+        std::string str_sid;
+        if(!get_cookie_value(cookie, "SID", str_sid))
+        {
+            DBG_LOG("get_cookie_value error.");
+            http_resp(con, false, "get sid in cookie fail, please login again.", websocketpp::http::status_code::bad_request);
+            return;
+        }
+        int sid = std::stoi(str_sid);
+        session_ptr sp = _sm.get_session_by_sid(sid);
+        if(sp.get() == nullptr)
+        {
+            DBG_LOG("get_session_by_sid error.");
+            http_resp(con, false, "get session by sid fail, please login again.", websocketpp::http::status_code::bad_request);
+            return;
+        }
+        int uid = sp->get_uid();
+        Room_Manager::room_ptr rp = _rm.get_room_by_uid(uid);
+        if(rp.get() == nullptr)
+        {
+            DBG_LOG("get_room_by_uid error.");
+            http_resp(con, false, "get room by uid fail, please login again.", websocketpp::http::status_code::bad_request);
+            return;
+        }
+        int black = rp->get_black();
+        int white = rp->get_white();
+        Json::Value white_info;
+        Json::Value black_info;
+        if(!_ut.select_by_uid(black, black_info))
+        {
+            DBG_LOG("select_by_id error.");
+            http_resp(con, false, "info with black id can't found, please login again.", websocketpp::http::status_code::bad_request);
+            return;
+        }
+        if(!_ut.select_by_uid(white, white_info))
+        {
+            DBG_LOG("select_by_id error.");
+            http_resp(con, false, "info with black id can't found, please login again.", websocketpp::http::status_code::bad_request);
+            return;
+        }
+        Json::Value wb_info;
+        wb_info["black_name"] = black_info["name"];
+        wb_info["black_id"] = black_info["id"];
+        wb_info["black_score"] = black_info["score"];
+        wb_info["black_total_games"] = black_info["total_games"];
+        wb_info["black_win_games"] = black_info["win_games"];
+
+        wb_info["white_name"] = white_info["name"];
+        wb_info["white_id"] = white_info["id"];
+        wb_info["white_score"] = white_info["score"];
+        wb_info["white_total_games"] = white_info["total_games"];
+        wb_info["white_win_games"] = white_info["win_games"];
+
+        wb_info["uid"] = uid;
+        std::string str;
+        Json_Util::serialize(wb_info, str);
         con->set_body(str);
         con->set_status(websocketpp::http::status_code::ok);
         con->append_header("Content-Type", "application/json");
@@ -183,9 +253,14 @@ class gomoku_server
         {
             login_handle(con);
         }
-        else if(method == "GET", uri == "/info")
+        else if(method == "GET", uri == "/hall/info")
         {
-            info_handle(con);
+            hall_info_handle(con);
+        }
+        else if(method == "GET", uri == "/room/info")
+        {
+            INF_LOG("room_info");
+            room_info_handle(con);
         }
         else
         {
@@ -288,6 +363,7 @@ class gomoku_server
         _om.enter_room(uid, con);
         _sm.set_session_expire_time(sp->get_sid(), SESSION_FOREVER);
         resp["optype"] = "room_ready";
+        resp["result"] = true;
         resp["room_id"] = rp->get_room_id();
         resp["uid"] = uid;
         resp["white_id"] = rp->get_white();
@@ -320,6 +396,15 @@ class gomoku_server
         _sm.set_session_expire_time(sp->get_sid(), DEFAULT_TIMEOUT);
     }
 
+    void ws_close_room(const websocketsvr::connection_ptr& con)
+    {
+        session_ptr sp = get_session_by_cookie(con, "hall_close");
+        if(sp.get() == nullptr) return;
+        _om.exit_room(sp->get_uid());
+        _sm.set_session_expire_time(sp->get_sid(), DEFAULT_TIMEOUT);
+        _rm.remove_user_room(sp->get_uid());
+    }
+
     void ws_handle_close(websocketpp::connection_hdl hdl)
     {
         INF_LOG("close websocket.");
@@ -332,7 +417,7 @@ class gomoku_server
         }
         else if(uri == "/room")
         {
-
+            return ws_close_room(con);
         }
     }
 
@@ -381,6 +466,33 @@ class gomoku_server
         return ws_resp(con, resp);
     }
 
+    void ws_message_room(const websocketsvr::connection_ptr& con, std::shared_ptr<websocketpp::config::core::message_type> msg)
+    {
+        session_ptr sp = get_session_by_cookie(con, "handle_request");
+        if(sp.get() == nullptr) return;
+        Json::Value resp;
+        int uid = sp->get_uid();
+        Room_Manager::room_ptr rp = _rm.get_room_by_uid(uid);
+        if(rp.get() == nullptr)
+        {
+            resp["optype"] = "handle_request";
+            resp["result"] = false;
+            resp["reason"] = "room info not found.";
+            return ws_resp(con, resp);
+        }
+        std::string req = msg->get_payload();
+        Json::Value req_json;
+        if(!Json_Util::unserialize(req, req_json))
+        {
+            DBG_LOG("unserialize error.");
+            resp["optype"] = "handle_request";
+            resp["result"] = false;
+            resp["reason"] = "bad request.";
+            return ws_resp(con, resp);
+        }
+        return rp->handle_request(req_json);
+    }
+
     void ws_handle_message(websocketpp::connection_hdl hdl, std::shared_ptr<websocketpp::config::core::message_type> msg)
     {
         INF_LOG("handle websocket request.");
@@ -393,7 +505,7 @@ class gomoku_server
         }
         else
         {
-
+            return ws_message_room(con, msg);
         }
     }
 public:

@@ -141,17 +141,25 @@ public:
         if(!_om->is_in_room(_white_id)) // 判断操作方是否掉线
         {
             DBG_LOG("white disconnected.");
+            resp["room_id"] = req["room_id"];
+            resp["uid"] = req["uid"];
+            resp["x"] = -1;
+            resp["y"] = -1;
             resp["result"] = true;
             resp["reason"] = "opposite side disconnected, you win";
-            resp["winner"] = _white_id;
+            resp["winner"] = _black_id;
             return resp;
         }
         if(!_om->is_in_room(_black_id)) // 判断对方是否掉线
         {
             DBG_LOG("black disconnected.");
+            resp["room_id"] = req["room_id"];
+            resp["uid"] = req["uid"];
+            resp["x"] = -1;
+            resp["y"] = -1;
             resp["result"] = true;
             resp["reason"] = "opposite side disconnected, you win"; // 掉线房间就剩一个人，所以都是己方胜利
-            resp["winner"] = _black_id;
+            resp["winner"] = _white_id;
             return resp;
         }
         int x = req["x"].asInt();
@@ -175,6 +183,10 @@ public:
             resp["winner"] = 0;
             resp["result"] = true;
         }
+        resp["room_id"] = req["room_id"];
+        resp["uid"] = req["uid"];
+        resp["x"] = req["x"];
+        resp["y"] = req["y"];
         return resp;
     }
 
@@ -219,17 +231,22 @@ public:
     {
         if(_gs == GAME_START)
         {
+            int winner = uid == _white_id ? _black_id : _white_id;
             Json::Value resp;
             resp["optype"] = "put_chess";
             resp["roomid"] = _room_id;
             resp["uid"] = uid;
-            resp["winner"] = uid == _white_id ? _black_id : _white_id;
+            resp["winner"] = winner;
             resp["x"] = -1;
             resp["y"] = -1;
-            resp["result"] = false;
+            resp["result"] = true;
             resp["reason"] = "opposite side disconnected, you win";
-            broad_cast(resp);
+
+            int loser = winner == _white_id ? _black_id : _white_id;
+            _ut->win(winner);
+            _ut->lose(loser);
             _gs = GAME_OVER;
+            broad_cast(resp);
         }
         --_user_count;
     }
@@ -257,7 +274,7 @@ public:
             return broad_cast(resp);
         }
         int uid = req["uid"].asInt();
-        if(_white_id != uid || _black_id != uid)
+        if(_white_id != uid && _black_id != uid)
         {
             DBG_LOG("operator user is not exists.");
             resp["result"] = false;
@@ -298,7 +315,7 @@ public:
         websocketsvr::connection_ptr black_con;
         if(_om->get_conn_from_room(_white_id, white_con)) white_con->send(str);
         else DBG_LOG("get white connection fail.");
-        if(_om->get_conn_from_room(_white_id, white_con)) black_con->send(str);
+        if(_om->get_conn_from_room(_black_id, black_con)) black_con->send(str);
         else DBG_LOG("get black connection fail.");
     }
 };
@@ -395,6 +412,7 @@ public:
 
     bool remove_room(int rid)
     {
+        // std::cout << "remove room" << std::endl;
         room_ptr rp = get_room_by_rid(rid);
         if(rp.get() == nullptr) return false;
         int white = rp->get_white();

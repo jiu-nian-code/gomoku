@@ -287,7 +287,7 @@
             console.log("正在请求用户信息...");
             $.ajax
             ({
-                url: "http://8.148.76.120:9091/info",
+                url: "http://8.148.76.120:9091/hall/info",
                 type: "GET",
                 success: function(res, status, xhr) {
                     $('#username_display').text(res.name);
