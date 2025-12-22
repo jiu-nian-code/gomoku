@@ -3,14 +3,15 @@
 
 typedef enum { GAME_START, GAME_OVER } Game_Stu;
 #define CHESSBOARD_SIZE 15
-#define WHITE_COLOR 1
-#define BLACK_COLOR 2
+#define WHITE_COLOR 2
+#define BLACK_COLOR 1
 class Room
 {
     int _room_id; // 房间id
     int _user_count; // 房间中的用户数量
     int _white_id; // 白棋方用户id
     int _black_id; // 黑棋方用户id
+    int _cur_id;
     Online_Manager* _om; // 用户管理类
     User_Table* _ut;
     Game_Stu _gs;
@@ -77,7 +78,7 @@ class Room
 public:
     Room(int room_id, Online_Manager* om, User_Table* ut) : 
         _room_id(room_id), _user_count(0),
-        _white_id(-1), _black_id(-1),
+        _white_id(-1), _black_id(-1), _cur_id(-1),
         _om(om), _ut(ut), _gs(GAME_START),
         _chessboard(CHESSBOARD_SIZE, std::vector<int>(CHESSBOARD_SIZE, 0))
     {
@@ -96,9 +97,11 @@ public:
     // Online_Manager* _om; // 用户管理类
     // User_Table* _ut;
     // Game_Stu _gs;
-    // std::vector<std::vector<int>> _chessboard; // 棋盘，size: 19 * 19
+    // std::vector<std::vector<int>> _chessboard; // 棋盘，size: 15 * 15
     void set_white(int uid) { _white_id = uid; ++_user_count; }
     void set_black(int uid) { _black_id = uid; ++_user_count; }
+    void set_cur(int uid) { _cur_id = uid; }
+    int get_cur() { return _cur_id; }
     int get_white() { return _white_id; }
     int get_black() { return _black_id; }
     int get_room_id() { return _room_id; }
@@ -138,7 +141,7 @@ public:
         Json::Value resp;
         resp["optype"] = req["optype"].asString();
         int uid = req["uid"].asInt();
-        if(!_om->is_in_room(_white_id)) // 判断操作方是否掉线
+        if(!_om->is_in_room(_white_id)) // 判断操作方是否掉线 // TODO，有bug
         {
             DBG_LOG("white disconnected.");
             resp["room_id"] = req["room_id"];
@@ -172,6 +175,7 @@ public:
             resp["reason"] = "position is not right, set chess fail.";
             return resp;
         }
+        set_cur(uid == _white_id ? _black_id : _white_id);
         if(is_win(x, y, color))
         {
             resp["winner"] = uid;
@@ -213,6 +217,7 @@ public:
     // }
     Json::Value handle_chat(Json::Value& req)
     {
+        check_req(req);
         Json::Value resp;
         std::string message = req["message"].asString();
         if(check_sensitive_word(message))
@@ -229,6 +234,7 @@ public:
 
     void handle_exit(int uid)
     {
+        std::cout << "handle_exit" << std::endl;
         if(_gs == GAME_START)
         {
             int winner = uid == _white_id ? _black_id : _white_id;
@@ -261,7 +267,8 @@ public:
     // User_Table* _ut;
     // Game_Stu _gs;
     // std::vector<std::vector<int>> _chessboard; // 棋盘，size: 19 * 19
-    void handle_request(Json::Value& req) // 请求处理分发
+
+    bool check_req(Json::Value& req)
     {
         Json::Value resp;
         int room_id = req["room_id"].asInt();
@@ -271,7 +278,8 @@ public:
             resp["optype"] = req["optype"].asString();
             resp["result"] = false;
             resp["reason"] = "room id mismatch.";
-            return broad_cast(resp);
+            broad_cast(resp);
+            return false;
         }
         int uid = req["uid"].asInt();
         if(_white_id != uid && _black_id != uid)
@@ -279,8 +287,16 @@ public:
             DBG_LOG("operator user is not exists.");
             resp["result"] = false;
             resp["reason"] = "operator user is not exists.";
-            return broad_cast(resp);
+            broad_cast(resp);
+            return false;
         }
+        return true;
+    }
+
+    void handle_request(Json::Value& req) // 请求处理分发
+    {
+        check_req(req);
+        Json::Value resp;
         std::string opt = req["optype"].asString();
         if(opt == "put_chess")
         {
@@ -318,6 +334,14 @@ public:
         if(_om->get_conn_from_room(_black_id, black_con)) black_con->send(str);
         else DBG_LOG("get black connection fail.");
     }
+
+    void board_reset(Json::Value& resp) // 掉线重连恢复信息
+    {
+        for(auto& m : _chessboard)
+            for(auto& n : m)
+                resp["chessboard"].append(n);
+        resp["cur_uid"] = get_cur();
+    }
 };
 
 class Room_Manager
@@ -338,6 +362,7 @@ public:
 
     room_ptr create_room(int user1, int user2) // 匹配成功使用两位用户id创建房间
     {
+        std::cout << "create_room" << std::endl;
         if(!_om->is_in_hall(user1))
         {
             DBG_LOG("user %d is not in hall.", user1);
@@ -403,9 +428,10 @@ public:
 
     bool remove_user_room(int uid) // 用户退出房间
     {
+        std::cout << "remove user room" << std::endl;
         room_ptr rp = get_room_by_uid(uid);
         if(rp.get() == nullptr) return false;
-        rp->handle_exit(uid);
+        if(!_om->is_in_room(uid)) rp->handle_exit(uid); // 防止按钮退出已经不在房间中了
         if(rp->get_user_count() == 0) remove_room(rp->get_room_id());
         return true;
     }

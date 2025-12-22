@@ -4,6 +4,27 @@
 #include"room.hpp"
 #include"session.hpp"
 #include"util.hpp"
+#include<functional>
+#include<queue>
+
+#define RCONNECTION_TIME 10000
+
+struct Task
+{
+    using task_func = std::function<bool()>;
+    task_func _tf = nullptr;
+    bool _is_cancel = false;
+    Task(const task_func& tf) : _tf(tf) {}
+    ~Task() 
+    {
+        if(!_is_cancel && _tf)
+        {
+            std::cout << "task执行" << std::endl;
+            _tf();
+        }
+        else std::cout << "task取消执行" << std::endl;
+    }
+};
 
 class gomoku_server
 {
@@ -14,6 +35,11 @@ class gomoku_server
     Session_Manager _sm;
     Matcher_Queue_Manager _mqm;
     std::string _root_path;
+    std::mutex _mt;
+
+    using task_ptr = std::shared_ptr<Task>;
+    std::unordered_map<int, task_ptr> _uid_task; // 这里用uid做任务id
+    std::unordered_map<int, websocketsvr::timer_ptr> _uid_time;
 
     void http_resp(const websocketsvr::connection_ptr& con, bool result, const std::string& reason, websocketpp::http::status_code::value code)
     {
@@ -368,6 +394,7 @@ class gomoku_server
         resp["uid"] = uid;
         resp["white_id"] = rp->get_white();
         resp["black_id"] = rp->get_black();
+        if(cancel_remove_task(uid)) rp->board_reset(resp);
         return ws_resp(con, resp);
     }
 
@@ -396,13 +423,89 @@ class gomoku_server
         _sm.set_session_expire_time(sp->get_sid(), DEFAULT_TIMEOUT);
     }
 
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+// 以下函数有线程安全，但是只在ws_close_room中执行，所以ws_close_room统一加锁
+
+    void remove_task(int uid)
+    {
+        // _uid_task.erase(uid);
+        // _uid_time.erase(uid);
+        task_ptr to_be_deleted; // 在锁外声明，先取再执行，防止死锁
+        {
+            std::unique_lock<std::mutex> lock(_mt);
+            auto it = _uid_task.find(uid);
+            if (it != _uid_task.end())
+            {
+                to_be_deleted = it->second; // 拷贝指针，增加引用计数
+                _uid_task.erase(it);
+            }
+            _uid_time.erase(uid);
+        }
+    }
+
+    void append_task(int uid, task_ptr& taskptr)
+    {
+        _uid_task.insert(std::make_pair(uid, taskptr));
+        _uid_time.insert(std::make_pair(uid, _server.set_timer(RCONNECTION_TIME, std::bind(&gomoku_server::remove_task, this, uid))));
+    }
+
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+    bool cancel_remove_task(int uid) // 该函数在ms_open_room中执行，所以单独加锁
+    {
+        std::unique_lock<std::mutex> lock(_mt);
+        if(_uid_task.count(uid) == 0) return false;
+        _uid_task[uid]->_is_cancel = true;
+        std::cout << "cancel_remove_task" << std::endl;
+        return true;
+    }
+
+    bool is_close_room_now(int uid, const Room_Manager::room_ptr& rp) // 如果对面已经退出了，设置了倒计时退出，那么就应该立即执行那个人的退出任务，然后执行自己的，没有超时重连的可能性了
+    {
+        int black = rp->get_black();
+        int white = rp->get_white();
+        int oppsite = uid == white ? black : white;
+        if(((_uid_task.count(oppsite) == 0 && _uid_time.count(oppsite) == 0) ||
+        (_uid_task[oppsite]->_is_cancel)) && _om.is_in_room(oppsite)) return false;
+        if(_uid_time.count(oppsite) == 0) // 一般情况绝对不会走进去，走进去就是线程不安全
+        {
+            ERR_LOG("thread is not safe!");
+            exit(-1);
+        }
+        _uid_time[oppsite]->cancel();
+        // _uid_time.erase(oppsite);
+        return true;
+    }
+
     void ws_close_room(const websocketsvr::connection_ptr& con)
     {
+        std::unique_lock<std::mutex> lock(_mt);
         session_ptr sp = get_session_by_cookie(con, "hall_close");
         if(sp.get() == nullptr) return;
-        _om.exit_room(sp->get_uid());
+        int uid = sp->get_uid();
+        _om.exit_room(uid);
         _sm.set_session_expire_time(sp->get_sid(), DEFAULT_TIMEOUT);
-        _rm.remove_user_room(sp->get_uid());
+        Room_Manager::room_ptr rp = _rm.get_room_by_uid(uid);
+        if(rp.get() == nullptr) return;
+        if(!is_close_room_now(uid, rp))
+        {
+            // std::cout << 1 << std::endl;
+            task_ptr taskptr(new Task(std::bind(&Room_Manager::remove_user_room, &_rm, uid)));
+            if(_uid_task.count(uid) != 0 && _uid_time.count(uid) != 0 && _uid_task[uid]->_is_cancel) // 看看之前map中有没有连接对象
+            {
+                _uid_time[uid]->cancel();
+                _server.set_timer(0, std::bind(&gomoku_server::append_task, this, uid, taskptr));
+            }
+            else append_task(uid, taskptr);
+        }
+        else
+        {
+            // std::cout << 2 << std::endl;
+            // 对面已经退出，cancel取消了，但是cancel不是立即执行，所以将自己也压进任务队列，然后0秒执行，排在cancel后面，确保根据退出顺序结算输赢得分
+            task_ptr taskptr(new Task(std::bind(&Room_Manager::remove_user_room, &_rm, uid)));
+            _uid_task.insert(std::make_pair(uid, taskptr));
+            _server.set_timer(0, std::bind(&gomoku_server::remove_task, this, uid));
+        }
     }
 
     void ws_handle_close(websocketpp::connection_hdl hdl)
@@ -490,7 +593,21 @@ class gomoku_server
             resp["reason"] = "bad request.";
             return ws_resp(con, resp);
         }
-        return rp->handle_request(req_json);
+        
+        if(req_json["optype"].asString() == "exit") // 只有按下退出按钮时才会有这个optype，这时直接0秒延迟退出房间决出胜负
+        {
+            std::unique_lock<std::mutex> lock(_mt);
+            rp->check_req(req_json);
+            _om.exit_room(uid);
+            _sm.set_session_expire_time(sp->get_sid(), DEFAULT_TIMEOUT);
+            Room_Manager::room_ptr rp = _rm.get_room_by_uid(uid);
+            if(rp.get() == nullptr) return; // 同close函数一样，房间都没了就别搞什么删除了
+
+            task_ptr taskptr(new Task(std::bind(&Room_Manager::remove_user_room, &_rm, uid)));
+            _uid_task.insert(std::make_pair(uid, taskptr));
+            _server.set_timer(0, std::bind(&gomoku_server::remove_task, this, uid));
+        }
+        else return rp->handle_request(req_json);
     }
 
     void ws_handle_message(websocketpp::connection_hdl hdl, std::shared_ptr<websocketpp::config::core::message_type> msg)

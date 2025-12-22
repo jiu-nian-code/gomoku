@@ -114,7 +114,7 @@
 
     <div class="player-wing left-wing">
         <div class="avatar-frame">
-            <img src="https://via.placeholder.com/100/00f2ff/000000?text=USER">
+            <img src="./image/yeshou.jpg">
             <div class="hologram-card">
                 <p style="color:var(--neon-blue); margin-bottom:10px; border-bottom:1px solid #333;" id="my_name_val">己方用户名</p>
                 <p>UID：<span id="my_uid_val">0</span></p>
@@ -122,12 +122,12 @@
                 <p>胜率：<span id="my_win_rate_val">0</span>%</p>
             </div>
         </div>
-        <div style="margin-top:10px; font-size:12px; color:var(--neon-blue); text-shadow: 0 0 5px var(--neon-blue);">COMMANDER</div>
+        <div style="margin-top:10px; font-size:12px; color:var(--neon-blue); text-shadow: 0 0 5px var(--neon-blue);">自己</div>
     </div>
 
     <div class="player-wing right-wing">
         <div class="avatar-frame">
-            <img src="https://via.placeholder.com/100/ff4757/000000?text=HOSTILE">
+            <img src="./image/yeshou.jpg">
             <div class="hologram-card">
                 <p style="color:var(--neon-blue); margin-bottom:10px; border-bottom:1px solid #333;" id="op_name_val">对方用户名</p>
                 <p>UID：<span id="op_uid_val">0</span></p>
@@ -135,7 +135,7 @@
                 <p>胜率：<span id="op_win_rate_val">0</span>%</p>
             </div>
         </div>
-        <div style="margin-top:10px; font-size:12px; color:var(--neon-red); text-shadow: 0 0 5px var(--neon-red);">OPPONENT</div>
+        <div style="margin-top:10px; font-size:12px; color:var(--neon-red); text-shadow: 0 0 5px var(--neon-red);">对手</div>
     </div>
 
     <main class="main-stage">
@@ -200,7 +200,7 @@
                     }
                     else if(res.uid == res.black_id)
                     {
-                        $('#my_name_val').text(res.black_name);
+                        $('#my_name_val').text(res.black_name + "(黑棋方)");
                         $('#my_uid_val').text(res.black_id);
                         $('#my_score_val').text(res.black_score);
                         let black_win_rate = null;
@@ -214,7 +214,7 @@
                         }
                         $('#my_win_rate_val').text(black_win_rate);
 
-                        $('#op_name_val').text(res.white_name);
+                        $('#op_name_val').text(res.white_name + "(白棋方)");
                         $('#op_uid_val').text(res.white_id);
                         $('#op_score_val').text(res.white_score);
                         let white_win_rate = null;
@@ -230,7 +230,7 @@
                     }
                     else if(res.uid == res.white_id)
                     {
-                        $('#my_name_val').text(res.white_name);
+                        $('#my_name_val').text(res.white_name + "(白棋方)");
                         $('#my_uid_val').text(res.white_id);
                         $('#my_score_val').text(res.white_score);
                         let white_win_rate = null;
@@ -244,7 +244,7 @@
                         }
                         $('#my_win_rate_val').text(white_win_rate);
 
-                        $('#op_name_val').text(res.black_name);
+                        $('#op_name_val').text(res.black_name + "(黑棋方)");
                         $('#op_uid_val').text(res.black_id);
                         $('#op_score_val').text(res.black_score);
                         let black_win_rate = null;
@@ -419,9 +419,23 @@
                     return;
                 }
                 room_info = info;
-                is_me = room_info.uid == room_info.white_id ? true : false;
-                updateScreenStatus(is_me);
                 initBoard();
+                if('chessboard' in room_info && room_info.cur_uid != -1)
+                {
+                    let num = 0;
+                    for(let i = 0; i < BOARD_SIZE; ++i) {
+                        for(let j = 0; j < BOARD_SIZE; ++j) {
+                            chessBoard[i][j] = room_info.chessboard[num];
+                            ++num;
+                        }
+                    }
+                    is_me = room_info.uid == room_info.cur_uid;
+                }
+                else
+                {
+                    is_me = room_info.uid == room_info.white_id ? true : false;
+                }
+                updateScreenStatus(is_me);
                 renderLoop();
             }
             else if(info.optype == "put_chess")
@@ -463,9 +477,20 @@
         canvas.onmousemove = e => { mx = e.offsetX; my = e.offsetY; };
         canvas.onmouseleave = () => { mx = -1; my = -1; };
 
-        function handleExit() {
-            if(confirm("警告：游戏中途退出判负")) {
-                if(ws_hdl) ws_hdl.close();
+        function handleExit()
+        {
+            if(confirm("警告：游戏中途退出判负"))
+            {
+                if(ws_hdl) 
+                {
+                    // ws_hdl.close();
+                    var exit_info = {
+                        optype: "exit",
+                        room_id: room_info.room_id,
+                        uid: room_info.uid,
+                    }
+                    ws_hdl.send(JSON.stringify(exit_info));
+                }
                 location.replace("/hall.html");
             }
         }
