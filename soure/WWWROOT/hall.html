@@ -241,7 +241,7 @@
 
         <div id="page_history" class="page-content">
             <div class="history-container">
-                <div class="history-header">最近对局 (最近20场)</div>
+                <div class="history-header">最近对局</div>
                 <div class="history-list" id="history_list_box">
                     </div>
             </div>
@@ -417,6 +417,60 @@
                 showToast("匹配成功");
                 location.href = "game_room.html";
             }
+            else if(resp_json["optype"] == "get_matches")
+            {
+                const $box = $('#history_list_box');
+        
+                // --- 2. 清空旧列表 ---
+                $box.empty();
+                let mockData = [];
+                // for(let i=0; i<20; i++) {
+                //     mockData.push({
+                //         win: Math.random() > 0.5,
+                //         score: 1200 + i*5,
+                //         change: 15 + i,
+                //         time: "2026-01-06 14:" + (50 - i)
+                //     });
+                // }
+                for(let i = 0; i < resp_json["matches"].length; i++)
+                {
+                    var recordObj = JSON.parse(resp_json["matches"][i]);
+                    mockData.push({
+                        win: recordObj.is_win,
+                        score: recordObj.cur_score,
+                        change: recordObj.cur_get,
+                        time: recordObj.cur_date
+                    });
+                }
+
+                // 循环生成 HTML
+                mockData.forEach((item, index) => {
+                    const resClass = item.win ? "res-win" : "res-loss";
+                    const resText = item.win ? "WIN" : "LOSS";
+                    const sign = item.win ? "+" : "-";
+                    
+                    const row = `
+                        <div class="history-item">
+                            <div class="${resClass}">${resText}</div>
+                            <div class="history-info">
+                                <div class="h-score">得分 ${item.score} 
+                                    <span style="color:${item.win?'#2ecc71':'#ff4757'}; font-size:14px">(${sign}${item.change})</span>
+                                </div>
+                                <div class="h-time">${item.time}</div>
+                            </div>
+                            <button class="btn-replay-small" onclick="showToast('正在获取录像...')">回放</button>
+                        </div>
+                    `;
+                    
+                    const $row = $(row);
+                    $box.append($row);
+
+                    // 核心动画：错开时间给每一行添加 .show 类名，实现滚动弹出感
+                    setTimeout(() => {
+                        $row.addClass('show');
+                    }, index * 60); // 每行间隔 60 毫秒弹出
+                });
+            }
             else
             {
                 alert(JSON.stringify(resp_json));
@@ -441,48 +495,53 @@
         }
 
         function renderHistoryList() {
-            const $box = $('#history_list_box');
-            $box.empty(); // 清空旧列表
+            // const $box = $('#history_list_box');
+            // $box.empty(); // 清空旧列表
 
+            var matches_info = {
+                optype: "get_matches",
+                uid: parseInt($('#val_uid').text(), 10)
+            }
+            ws_hdl.send(JSON.stringify(matches_info));
             // 模拟从服务器获取的20条数据 (后期你可以把这里改成 AJAX 请求)
             // 假设数据格式：[{win: true, score: 1250, change: +15, time: "2026-01-01 12:00"}]
-            let mockData = [];
-            for(let i=0; i<20; i++) {
-                mockData.push({
-                    win: Math.random() > 0.5,
-                    score: 1200 + i*5,
-                    change: 15 + i,
-                    time: "2026-01-06 14:" + (50 - i)
-                });
-            }
+            // let mockData = [];
+            // for(let i=0; i<20; i++) {
+            //     mockData.push({
+            //         win: Math.random() > 0.5,
+            //         score: 1200 + i*5,
+            //         change: 15 + i,
+            //         time: "2026-01-06 14:" + (50 - i)
+            //     });
+            // }
 
-            // 循环生成 HTML
-            mockData.forEach((item, index) => {
-                const resClass = item.win ? "res-win" : "res-loss";
-                const resText = item.win ? "WIN" : "LOSS";
-                const sign = item.win ? "+" : "-";
+            // // 循环生成 HTML
+            // mockData.forEach((item, index) => {
+            //     const resClass = item.win ? "res-win" : "res-loss";
+            //     const resText = item.win ? "WIN" : "LOSS";
+            //     const sign = item.win ? "+" : "-";
                 
-                const row = `
-                    <div class="history-item">
-                        <div class="${resClass}">${resText}</div>
-                        <div class="history-info">
-                            <div class="h-score">得分 ${item.score} 
-                                <span style="color:${item.win?'#2ecc71':'#ff4757'}; font-size:14px">(${sign}${item.change})</span>
-                            </div>
-                            <div class="h-time">${item.time}</div>
-                        </div>
-                        <button class="btn-replay-small" onclick="showToast('正在获取录像...')">回放</button>
-                    </div>
-                `;
+            //     const row = `
+            //         <div class="history-item">
+            //             <div class="${resClass}">${resText}</div>
+            //             <div class="history-info">
+            //                 <div class="h-score">得分 ${item.score} 
+            //                     <span style="color:${item.win?'#2ecc71':'#ff4757'}; font-size:14px">(${sign}${item.change})</span>
+            //                 </div>
+            //                 <div class="h-time">${item.time}</div>
+            //             </div>
+            //             <button class="btn-replay-small" onclick="showToast('正在获取录像...')">回放</button>
+            //         </div>
+            //     `;
                 
-                const $row = $(row);
-                $box.append($row);
+            //     const $row = $(row);
+            //     $box.append($row);
 
-                // 核心动画：错开时间给每一行添加 .show 类名，实现滚动弹出感
-                setTimeout(() => {
-                    $row.addClass('show');
-                }, index * 60); // 每行间隔 60 毫秒弹出
-            });
+            //     // 核心动画：错开时间给每一行添加 .show 类名，实现滚动弹出感
+            //     setTimeout(() => {
+            //         $row.addClass('show');
+            //     }, index * 60); // 每行间隔 60 毫秒弹出
+            // });
         }
     </script>
 </body>

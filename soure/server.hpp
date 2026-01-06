@@ -29,6 +29,7 @@ struct Task
 class Gomoku_Server
 {
     websocketsvr _server;
+    Matches_Table _mtable;
     User_Table _ut;
     Online_Manager _om;
     Room_Manager _rm;
@@ -559,6 +560,11 @@ class Gomoku_Server
             resp["optype"] = "match_stop";
             resp["result"] = true;
         }
+        else if(!req_json["optype"].isNull() && req_json["optype"].asString() == "get_matches")
+        {
+            resp["optype"] = "get_matches";
+            _mtable.select_by_uid(req_json["uid"].asInt(), resp);
+        }
         else
         {
             DBG_LOG("unknow optype.");
@@ -630,7 +636,8 @@ public:
         const char *passwd, const char *db, 
         unsigned int port, const char *unix_socket, 
         unsigned long clientflag, const std::string& root_path):
-        _ut(host, user, passwd, db, port, unix_socket, clientflag),
+        _mtable(host, user, passwd, db, port, unix_socket, clientflag),
+        _ut(host, user, passwd, db, port, unix_socket, clientflag, &_mtable),
         _rm(&_om, &_ut),
         _sm(&_server),
         _mqm(&_ut, &_om, &_rm),

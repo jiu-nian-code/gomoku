@@ -45,32 +45,32 @@ void test_File_Util()
     std::cout << str.size() << std::endl;
 }
 
-void test_user_table()
-{
-    User_Table ut("127.0.0.1", "thx", "thxTHX@0210", "gomoku_db", 3333, NULL, 0);
-    Json::Value va;
-    Json::Value ret;
-    va["name"] = "童宏旭";
-    va["password"] = "thxTHX@0210";
-    ut.insert(va);
-    ut.login(va);
-    // ut.win(va["id"].asInt());
-    // ut.lose(va["id"].asInt());
-    // std::cout << "id: " << va["id"].asInt() << " score: " 
-    // << va["score"].asInt() << " total_games: " 
-    // << va["total_games"] << " win_games: " 
-    // << va["win_games"].asInt() << std::endl;
-    // ut.select_by_name("田所浩二", va);
-    // std::cout << "id: " << va["id"].asInt() << " score: " 
-    // << va["score"].asInt() << " total_games: " 
-    // << va["total_games"] << " win_games: " 
-    // << va["win_games"].asInt() << std::endl;
-    ut.select_by_uid(va["id"].asInt(), ret);
-    std::cout << "id: " << ret["id"].asInt() << " score: " 
-    << ret["score"].asInt() << " total_games: " 
-    << ret["total_games"] << " win_games: " 
-    << ret["win_games"].asInt() << std::endl;
-}
+// void test_user_table()
+// {
+//     User_Table ut("127.0.0.1", "thx", "thxTHX@0210", "gomoku_db", 3333, NULL, 0);
+//     Json::Value va;
+//     Json::Value ret;
+//     va["name"] = "童宏旭";
+//     va["password"] = "thxTHX@0210";
+//     ut.insert(va);
+//     ut.login(va);
+//     // ut.win(va["id"].asInt());
+//     // ut.lose(va["id"].asInt());
+//     // std::cout << "id: " << va["id"].asInt() << " score: " 
+//     // << va["score"].asInt() << " total_games: " 
+//     // << va["total_games"] << " win_games: " 
+//     // << va["win_games"].asInt() << std::endl;
+//     // ut.select_by_name("田所浩二", va);
+//     // std::cout << "id: " << va["id"].asInt() << " score: " 
+//     // << va["score"].asInt() << " total_games: " 
+//     // << va["total_games"] << " win_games: " 
+//     // << va["win_games"].asInt() << std::endl;
+//     ut.select_by_uid(va["id"].asInt(), ret);
+//     std::cout << "id: " << ret["id"].asInt() << " score: " 
+//     << ret["score"].asInt() << " total_games: " 
+//     << ret["total_games"] << " win_games: " 
+//     << ret["win_games"].asInt() << std::endl;
+// }
 
 void test_online_manager()
 {
@@ -88,21 +88,21 @@ void test_online_manager()
     std::cout << om.is_in_room(2) << std::endl;
 }
 
-void test_room()
-{
-    Online_Manager om;
-    User_Table ut("127.0.0.1", "thx", "thxTHX@0210", "gomoku_db", 3333, NULL, 0);
-    websocketsvr::connection_ptr cp1;
-    websocketsvr::connection_ptr cp2;
-    om.enter_hall(1, cp1);
-    om.enter_hall(2, cp2);
-    Room_Manager rm(&om, &ut);
-    rm.create_room(1, 2);
-    rm.remove_user_room(1);
-    rm.remove_user_room(2);
-    Room_Manager::room_ptr rp = rm.get_room_by_uid(1);
-    if(rp.get() == nullptr) std::cout << "haha" << std::endl;
-}
+// void test_room()
+// {
+//     Online_Manager om;
+//     User_Table ut("127.0.0.1", "thx", "thxTHX@0210", "gomoku_db", 3333, NULL, 0);
+//     websocketsvr::connection_ptr cp1;
+//     websocketsvr::connection_ptr cp2;
+//     om.enter_hall(1, cp1);
+//     om.enter_hall(2, cp2);
+//     Room_Manager rm(&om, &ut);
+//     rm.create_room(1, 2);
+//     rm.remove_user_room(1);
+//     rm.remove_user_room(2);
+//     Room_Manager::room_ptr rp = rm.get_room_by_uid(1);
+//     if(rp.get() == nullptr) std::cout << "haha" << std::endl;
+// }
 
 Session_Manager* sm_ptr = nullptr;
 
@@ -169,6 +169,17 @@ void test_server()
 {
     Gomoku_Server gs("127.0.0.1", "thx", "thxTHX@0210", "gomoku_db", 3333, NULL, 0, "WWWROOT");
     gs.start();
+}
+
+void test_matches()
+{
+    Matches_Table mt("127.0.0.1", "thx", "thxTHX@0210", "gomoku_db", 3333, NULL, 0);
+    mt.settlement(1, 1200, false, -10);
+    Json::Value va;
+    mt.select_by_uid(1, va);
+    Json::StyledWriter sw;
+    std::string str = sw.write(va);
+    std::cout << str << std::endl;
 }
 
 int main()
