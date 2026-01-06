@@ -62,7 +62,7 @@ class Room
     bool is_win(int x, int y, int color)
     {
         if(five(x, y, color, 0, 1) || five(x, y, color, 1, 0) || 
-        five(x, y, color, 1, 1) || five(x, y, color, -1, -1)) return true;
+        five(x, y, color, 1, 1) || five(x, y, color, 1, -1)) return true;
         return false;
     }
 

@@ -14,7 +14,7 @@ int main()
     int back = mysql_set_character_set(&mq, "utf8");
     if(back != 0)  { perror("mysql_set_character_set"); exit(1); }
     // int mysql_query(MYSQL *mysql, const char *stmt_str)
-    mysql_query(&mq, "select * from stu");
+    mysql_query(&mq, "select * from matches");
     MYSQL_RES* res = mysql_store_result(&mq);
     if(res)
     {

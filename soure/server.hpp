@@ -26,7 +26,7 @@ struct Task
     }
 };
 
-class gomoku_server
+class Gomoku_Server
 {
     websocketsvr _server;
     User_Table _ut;
@@ -446,7 +446,7 @@ class gomoku_server
     void append_task(int uid, task_ptr& taskptr)
     {
         _uid_task.insert(std::make_pair(uid, taskptr));
-        _uid_time.insert(std::make_pair(uid, _server.set_timer(RCONNECTION_TIME, std::bind(&gomoku_server::remove_task, this, uid))));
+        _uid_time.insert(std::make_pair(uid, _server.set_timer(RCONNECTION_TIME, std::bind(&Gomoku_Server::remove_task, this, uid))));
     }
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -494,7 +494,7 @@ class gomoku_server
             if(_uid_task.count(uid) != 0 && _uid_time.count(uid) != 0 && _uid_task[uid]->_is_cancel) // 看看之前map中有没有连接对象
             {
                 _uid_time[uid]->cancel();
-                _server.set_timer(0, std::bind(&gomoku_server::append_task, this, uid, taskptr));
+                _server.set_timer(0, std::bind(&Gomoku_Server::append_task, this, uid, taskptr));
             }
             else append_task(uid, taskptr);
         }
@@ -504,7 +504,7 @@ class gomoku_server
             // 对面已经退出，cancel取消了，但是cancel不是立即执行，所以将自己也压进任务队列，然后0秒执行，排在cancel后面，确保根据退出顺序结算输赢得分
             task_ptr taskptr(new Task(std::bind(&Room_Manager::remove_user_room, &_rm, uid)));
             _uid_task.insert(std::make_pair(uid, taskptr));
-            _server.set_timer(0, std::bind(&gomoku_server::remove_task, this, uid));
+            _server.set_timer(0, std::bind(&Gomoku_Server::remove_task, this, uid));
         }
     }
 
@@ -605,7 +605,7 @@ class gomoku_server
 
             task_ptr taskptr(new Task(std::bind(&Room_Manager::remove_user_room, &_rm, uid)));
             _uid_task.insert(std::make_pair(uid, taskptr));
-            _server.set_timer(0, std::bind(&gomoku_server::remove_task, this, uid));
+            _server.set_timer(0, std::bind(&Gomoku_Server::remove_task, this, uid));
         }
         else return rp->handle_request(req_json);
     }
@@ -626,7 +626,7 @@ class gomoku_server
         }
     }
 public:
-    gomoku_server(const char *host, const char *user, 
+    Gomoku_Server(const char *host, const char *user, 
         const char *passwd, const char *db, 
         unsigned int port, const char *unix_socket, 
         unsigned long clientflag, const std::string& root_path):
@@ -639,10 +639,10 @@ public:
         _server.set_access_channels(websocketpp::log::alevel::none);
         _server.init_asio();
         _server.set_reuse_addr(true);
-        _server.set_http_handler(std::bind(&gomoku_server::handle_http, this, std::placeholders::_1));
-        _server.set_open_handler(std::bind(&gomoku_server::ws_handle_open, this, std::placeholders::_1));
-        _server.set_close_handler(std::bind(&gomoku_server::ws_handle_close, this, std::placeholders::_1));
-        _server.set_message_handler(std::bind(&gomoku_server::ws_handle_message, this, std::placeholders::_1, std::placeholders::_2));
+        _server.set_http_handler(std::bind(&Gomoku_Server::handle_http, this, std::placeholders::_1));
+        _server.set_open_handler(std::bind(&Gomoku_Server::ws_handle_open, this, std::placeholders::_1));
+        _server.set_close_handler(std::bind(&Gomoku_Server::ws_handle_close, this, std::placeholders::_1));
+        _server.set_message_handler(std::bind(&Gomoku_Server::ws_handle_message, this, std::placeholders::_1, std::placeholders::_2));
     }
 
     void start()

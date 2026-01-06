@@ -10,6 +10,16 @@ create table if not exists user
     win_games int comment "游戏胜利场数"
 );
 
+create table if not exists matches
+(
+    match_id bigint unsigned primary key auto_increment comment "对局ID",
+    uid int comment "用户id",
+    cur_score int comment "当前总分",
+    is_win bool comment "输赢",
+    cur_get int comment "当前得分",
+    cur_date timestamp
+);
+
 -- 测试用户
 insert into user(name, password, score, total_games, win_games) value("田所浩二", MD5("HOMOhomo@114514"), 1000, 0, 0);
 insert into user(name, password, score, total_games, win_games) value("佐佐木淳平", MD5("YADAmoyada@114514"), 1000, 0, 0);

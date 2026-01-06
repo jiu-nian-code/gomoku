@@ -167,7 +167,7 @@ void test_matcher()
 
 void test_server()
 {
-    gomoku_server gs("127.0.0.1", "thx", "thxTHX@0210", "gomoku_db", 3333, NULL, 0, "WWWROOT");
+    Gomoku_Server gs("127.0.0.1", "thx", "thxTHX@0210", "gomoku_db", 3333, NULL, 0, "WWWROOT");
     gs.start();
 }
 

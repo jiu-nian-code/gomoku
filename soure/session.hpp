@@ -93,7 +93,7 @@ public:
             sp->set_timer_ptr(websocketsvr::timer_ptr());
             _server->set_timer(0, std::bind(&Session_Manager::session_append, this, sp));
             websocketsvr::timer_ptr new_tp = _server->set_timer(timeout, std::bind(&Session_Manager::remove_session, this, sid));
-            sp->set_timer_ptr(new_tp); // 后两步绝对不能和第二部交换，如果新设置的就是0秒后销毁，那么可能会出现cancel先执行了，然后设置set，然后继续创建，这样remove后又创建，session永久存在了
+            sp->set_timer_ptr(new_tp); // 后两步绝对不能和第二步交换，如果新设置的就是0秒后销毁，那么可能会出现cancel先执行了，然后设置set，然后继续创建，这样remove后又创建，session永久存在了
         }
     }
     
