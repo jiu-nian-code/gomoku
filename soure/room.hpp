@@ -14,8 +14,11 @@ class Room
     int _cur_id;
     Online_Manager* _om; // 用户管理类
     User_Table* _ut;
+    Matches_Table* _mtable;
+    Matches_Step_Table* _mst;
     Game_Stu _gs;
     std::vector<std::vector<int>> _chessboard; // 棋盘，size: 15 * 15
+    std::vector<std::pair<int, int>> _step;
     std::vector<std::string> _sensitive_word = 
     {
         "cnm",
@@ -30,6 +33,7 @@ class Room
     {
         if(_chessboard[x][y] != 0 || x >= CHESSBOARD_SIZE || y >= CHESSBOARD_SIZE) return false;
         _chessboard[x][y] = color;
+        _step.emplace_back(x, y);
         return true;
     }
 
@@ -76,10 +80,10 @@ class Room
         return false;
     }
 public:
-    Room(int room_id, Online_Manager* om, User_Table* ut) : 
+    Room(int room_id, Online_Manager* om, User_Table* ut, Matches_Table* mtable) : 
         _room_id(room_id), _user_count(0),
         _white_id(-1), _black_id(-1), _cur_id(-1),
-        _om(om), _ut(ut), _gs(GAME_START),
+        _om(om), _ut(ut), _mtable(mtable), _gs(GAME_START),
         _chessboard(CHESSBOARD_SIZE, std::vector<int>(CHESSBOARD_SIZE, 0))
     {
         DBG_LOG("%d room create success.", _room_id);
@@ -141,28 +145,30 @@ public:
         Json::Value resp;
         resp["optype"] = req["optype"].asString();
         int uid = req["uid"].asInt();
-        if(!_om->is_in_room(_white_id)) // 判断操作方是否掉线 // TODO，有bug
+        if(!_om->is_in_room(_white_id)) // 判断白方是否掉线 // TODO，有bug
         {
             DBG_LOG("white disconnected.");
-            resp["room_id"] = req["room_id"];
-            resp["uid"] = req["uid"];
-            resp["x"] = -1;
-            resp["y"] = -1;
-            resp["result"] = true;
-            resp["reason"] = "opposite side disconnected, you win";
-            resp["winner"] = _black_id;
+            // resp["room_id"] = req["room_id"];
+            // resp["uid"] = req["uid"];
+            // resp["x"] = -1;
+            // resp["y"] = -1;
+            // resp["result"] = true;
+            // resp["reason"] = "opposite side disconnected, you win";
+            // resp["winner"] = _black_id;
+            resp["uid"] = -2;
             return resp;
         }
-        if(!_om->is_in_room(_black_id)) // 判断对方是否掉线
+        if(!_om->is_in_room(_black_id)) // 判断黑方是否掉线
         {
             DBG_LOG("black disconnected.");
-            resp["room_id"] = req["room_id"];
-            resp["uid"] = req["uid"];
-            resp["x"] = -1;
-            resp["y"] = -1;
-            resp["result"] = true;
-            resp["reason"] = "opposite side disconnected, you win"; // 掉线房间就剩一个人，所以都是己方胜利
-            resp["winner"] = _white_id;
+            // resp["room_id"] = req["room_id"];
+            // resp["uid"] = req["uid"];
+            // resp["x"] = -1;
+            // resp["y"] = -1;
+            // resp["result"] = true;
+            // resp["reason"] = "opposite side disconnected, you win"; // 掉线房间就剩一个人，所以都是己方胜利
+            // resp["winner"] = _white_id;
+            resp["uid"] = -1;
             return resp;
         }
         int x = req["x"].asInt();
@@ -232,7 +238,7 @@ public:
         return resp;
     }
 
-    void handle_exit(int uid)
+    bool handle_exit(int uid)
     {
         std::cout << "handle_exit" << std::endl;
         if(_gs == GAME_START)
@@ -248,13 +254,32 @@ public:
             resp["result"] = true;
             resp["reason"] = "opposite side disconnected, you win";
 
+            // int loser = winner == _white_id ? _black_id : _white_id;
+            // _ut->win(winner);
+            // _ut->lose(loser);
             int loser = winner == _white_id ? _black_id : _white_id;
-            _ut->win(winner);
-            _ut->lose(loser);
+            if(!_ut->win(winner)) { DBG_LOG("win error."); return false; }
+            if(!_ut->lose(loser)) { DBG_LOG("lose error."); return false; }
+            Json::Value va1;
+            if(!_ut->select_by_uid(winner, va1)) { DBG_LOG("select_by_uid error."); return false; }
+            Json::Value va2;
+            if(!_ut->select_by_uid(loser, va2)) { DBG_LOG("select_by_uid error."); return false; }
+            if(winner == _white_id)
+            {
+                if(!_mtable->settlement(_white_id, _black_id, va1["score"].asInt(), va2["score"].asInt(), 10, -10, true))
+                { DBG_LOG("settlement error."); return false; }
+            }
+            else
+            {
+                if(!_mtable->settlement(_white_id, _black_id, va2["score"].asInt(), va1["score"].asInt(), -10, 10, false))
+                { DBG_LOG("settlement error."); return false; }
+            }
+            // _mst->settlement(_mtable->get_mid_by_uid(winner), _step);
             _gs = GAME_OVER;
             broad_cast(resp);
         }
         --_user_count;
+        return true;
     }
 
     // 由大厅进入房间，用户已经准备就绪，所以不会有处理用户进入的函数
@@ -293,7 +318,7 @@ public:
         return true;
     }
 
-    void handle_request(Json::Value& req) // 请求处理分发
+    int handle_request(Json::Value& req) // 请求处理分发
     {
         check_req(req);
         Json::Value resp;
@@ -301,12 +326,29 @@ public:
         if(opt == "put_chess")
         {
             resp = handle_chess(req);
+            if(resp["uid"].asInt() == -1) return 1;
+            if(resp["uid"].asInt() == -2) return 2;
             int winner = resp["winner"].asInt();
             if(winner != 0)
             {
                 int loser = winner == _white_id ? _black_id : _white_id;
-                _ut->win(winner);
-                _ut->lose(loser);
+                if(!_ut->win(winner)) { DBG_LOG("win error."); return false; }
+                if(!_ut->lose(loser)) { DBG_LOG("lose error."); return false; }
+                Json::Value va1;
+                if(!_ut->select_by_uid(winner, va1)) { DBG_LOG("select_by_uid error."); return false; }
+                Json::Value va2;
+                if(!_ut->select_by_uid(loser, va2)) { DBG_LOG("select_by_uid error."); return false; }
+                if(winner == _white_id)
+                {
+                    if(!_mtable->settlement(_white_id, _black_id, va1["score"].asInt(), va2["score"].asInt(), 10, -10, true))
+                    { DBG_LOG("settlement error."); return false; }
+                }
+                else
+                {
+                    if(!_mtable->settlement(_white_id, _black_id, va2["score"].asInt(), va1["score"].asInt(), -10, 10, false))
+                    { DBG_LOG("settlement error."); return false; }
+                }
+                // _mst->settlement(_mtable->get_mid_by_uid(winner), _step);
                 _gs = GAME_OVER;
             }
         }
@@ -321,6 +363,7 @@ public:
             resp["reason"] = "unknow optype";
         }
         broad_cast(resp);
+        return 0;
     }
 
     void broad_cast(Json::Value& resp) // 将用户的操作广播给同一个房间的其他用户
@@ -351,13 +394,14 @@ public:
 private:
     Online_Manager* _om;
     User_Table* _ut;
+    Matches_Table* _mtable;
     int _room_id_alloc;
     // using room_ptr = std::shared_ptr<Room>;
     std::unordered_map<int, room_ptr> _rid_room;
     std::unordered_map<int, int> _user_room;
     std::mutex _mt;
 public:
-    Room_Manager(Online_Manager* om, User_Table* ut) : _om(om), _ut(ut), _room_id_alloc(0) {}
+    Room_Manager(Online_Manager* om, User_Table* ut, Matches_Table* mtable) : _om(om), _ut(ut), _mtable(mtable), _room_id_alloc(0) {}
     ~Room_Manager() {}
 
     room_ptr create_room(int user1, int user2) // 匹配成功使用两位用户id创建房间
@@ -373,7 +417,7 @@ public:
             DBG_LOG("user %d is not in hall.", user2);
             return room_ptr();
         }
-        room_ptr tmp(new Room(_room_id_alloc, _om, _ut));
+        room_ptr tmp(new Room(_room_id_alloc, _om, _ut, _mtable));
         std::unique_lock<std::mutex> lock(_mt);
         tmp->set_white(user1);
         tmp->set_black(user2);

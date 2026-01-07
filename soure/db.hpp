@@ -20,9 +20,13 @@ public:
 
     bool select_by_uid(int uid, Json::Value& va)
     {
-        #define MATCHES_TABLE_SELECT_BY_UID_SQL "select match_id, cur_score, is_win, cur_get, cur_date from matches where uid = %d order by match_id desc limit 20;"
+        #define MATCHES_TABLE_SELECT_BY_UID_SQL \
+        "select match_id, white_uid, white_cur_score, "\
+        "black_cur_score, white_cur_get, black_cur_get, is_white_win, "\
+        "cur_date from matches where white_uid = %d or black_uid = %d order by match_id desc limit 20"
         char buf[1024] = {0};
-        snprintf(buf, 1024, MATCHES_TABLE_SELECT_BY_UID_SQL, uid);
+        snprintf(buf, 1024, MATCHES_TABLE_SELECT_BY_UID_SQL, uid, uid);
+        std::cout << buf << std::endl;
         MYSQL_RES* res = nullptr;
         {
             std::unique_lock<std::mutex> lock(_mt);
@@ -45,10 +49,19 @@ public:
             Json::Value tmp;
             tmp["match_id"] = std::stoi(rows[0]);
             tmp["id"] = uid;
-            tmp["cur_score"] = std::stoi(rows[1]);
-            tmp["is_win"] = std::stoi(rows[2]);
-            tmp["cur_get"] = std::stoi(rows[3]);
-            tmp["cur_date"] = rows[4];
+            if(uid == std::stoi(rows[1])) // 是白棋id
+            {
+                tmp["cur_score"] = std::stoi(rows[2]);
+                tmp["is_win"] = std::stoi(rows[6]);
+                tmp["cur_get"] = std::stoi(rows[4]);
+            }
+            else
+            {
+                tmp["cur_score"] = std::stoi(rows[3]);
+                tmp["is_win"] = !(std::stoi(rows[6]));
+                tmp["cur_get"] = std::stoi(rows[5]);
+            }
+            tmp["cur_date"] = rows[7];
             std::string str;
             Json_Util::serialize(tmp, str);
             std::cout << str << std::endl;
@@ -58,18 +71,136 @@ public:
         return true;
     }
 
-    bool settlement(int uid, int cur_score, bool is_win, int cur_get)
+    // create table if not exists matches
+    // (
+    //     match_id bigint unsigned primary key auto_increment comment "对局ID",
+    //     white_uid int comment "白棋用户id",
+    //     black_uid int comment "黑棋用户id",
+    //     white_cur_score int comment "白棋用户当前总分",
+    //     black_cur_score int comment "黑棋用户当前总分",
+    //     white_cur_get int comment "白棋用户当前得分",
+    //     black_cur_get int comment "黑棋用户当前得分",
+    //     is_white_win bool comment "是否是白棋赢",
+    //     cur_date timestamp
+    // );
+
+    bool settlement(int white_uid, int black_uid, int white_cur_score, int black_cur_score, int white_cur_get, int black_cur_get, bool is_white_win)
     {
-        #define MATCHES_SETTLEMENT_TABLE_UPDATE_SQL "insert into matches(uid, cur_score, is_win, cur_get) values(%d, %d, %d, %d)"
+        #define MATCHES_SETTLEMENT_TABLE_UPDATE_SQL \
+        "insert into matches(white_uid, black_uid, white_cur_score, black_cur_score, white_cur_get, black_cur_get, is_white_win) values(%d, %d, %d, %d, %d, %d, %d)"
         char buf[1024] = {0};
-        snprintf(buf, 1024, MATCHES_SETTLEMENT_TABLE_UPDATE_SQL, uid, cur_score, is_win, cur_get);
+        snprintf(buf, 1024, MATCHES_SETTLEMENT_TABLE_UPDATE_SQL, white_uid, black_uid, white_cur_score, black_cur_score, white_cur_get, black_cur_get, is_white_win);
         {
             std::unique_lock<std::mutex> lock(_mt);
             bool ret = _mu.exec_mysql(buf);
             if(!ret)
             {
-                DBG_LOG("win update error.");
+                DBG_LOG("settlement error.");
                 return false;
+            }
+        }
+        return true;
+    }
+
+    unsigned long long get_mid_by_uid(int uid)
+    {
+        #define MATCHES_GET_MID_BY_UID_TABLE_UPDATE_SQL "select match_id from matches where white_uid = %d or black_uid = %d order by match_id desc limit 1"
+        char buf[1024] = {0};
+        snprintf(buf, 1024, MATCHES_GET_MID_BY_UID_TABLE_UPDATE_SQL, uid, uid);
+        MYSQL_RES* res = nullptr;
+        {
+            std::unique_lock<std::mutex> lock(_mt);
+            bool ret = _mu.exec_mysql(buf);
+            if(!ret)
+            {
+                DBG_LOG("select by id error.");
+                return false;
+            }
+            res = _mu.result_mysql();
+            if(!res)
+            {
+                DBG_LOG("result is empty.");
+                return false;
+            }
+        }
+        if(mysql_num_rows(res) != 1)
+        {
+            DBG_LOG("user information is duplicated!");
+            return false;
+        }
+        MYSQL_ROW rows = mysql_fetch_row(res);
+        unsigned long long mid = std::stoull(rows[0]);
+        return mid;
+    }
+};
+
+class Matches_Step_Table
+{
+    Mysql_Util _mu;
+    std::mutex _mt;
+public:
+    Matches_Step_Table(const char *host, const char *user, 
+    const char *passwd, const char *db, 
+    unsigned int port, const char *unix_socket, 
+    unsigned long clientflag)
+    {
+        bool ret = _mu.create_mysql(host, user, passwd, db, port, unix_socket, clientflag);
+        if(!ret) DBG_LOG("mysql create fail.");
+    }
+
+    bool select_by_uid(int mid, Json::Value& va)
+    {
+        #define MATCHES_STEP_TABLE_SELECT_BY_UID_SQL "select x, y from matches_step where match_id = %d order by step asc"
+        char buf[1024] = {0};
+        snprintf(buf, 1024, MATCHES_STEP_TABLE_SELECT_BY_UID_SQL, mid);
+        MYSQL_RES* res = nullptr;
+        {
+            std::unique_lock<std::mutex> lock(_mt);
+            bool ret = _mu.exec_mysql(buf);
+            if(!ret)
+            {
+                DBG_LOG("select by id error.");
+                return false;
+            }
+            res = _mu.result_mysql();
+            if(!res)
+            {
+                DBG_LOG("result is empty.");
+                return false;
+            }
+        }
+        for(int i = 0; i < mysql_num_rows(res); ++i)
+        {
+            MYSQL_ROW rows = mysql_fetch_row(res);
+            Json::Value tmp;
+            tmp["x"] = rows[0];
+            tmp["y"] = rows[1];
+            std::string str;
+            Json_Util::serialize(tmp, str);
+            std::cout << str << std::endl;
+            va["step"].append(str);
+        }
+        mysql_free_result(res);
+        return true;
+    }
+
+    bool settlement(unsigned long long mid, const std::vector<std::pair<int, int>>& steps)
+    {
+        #define MATCHES_STEP_SETTLEMENT_TABLE_UPDATE_SQL "insert into matches_step values(%llu, %d, %d, %d)"
+        char buf[1024] = {0};
+        // snprintf(buf, 1024, MATCHES_SETTLEMENT_TABLE_UPDATE_SQL, mid, oppo_uid, cur_score, is_win, is_white, cur_get);
+        {
+            std::unique_lock<std::mutex> lock(_mt);
+            size_t num = 0;
+            for(auto& e : steps)
+            {
+                snprintf(buf, 1024, MATCHES_STEP_SETTLEMENT_TABLE_UPDATE_SQL, mid, e.first, e.second, num++);
+                bool ret = _mu.exec_mysql(buf);
+                if(!ret)
+                {
+                    DBG_LOG("win update error.");
+                    return false;
+                }
             }
         }
         return true;
@@ -80,12 +211,11 @@ class User_Table
 {
     Mysql_Util _mu;
     std::mutex _mt;
-    Matches_Table* _mtable;
 public:
     User_Table(const char *host, const char *user, 
         const char *passwd, const char *db, 
         unsigned int port, const char *unix_socket, 
-        unsigned long clientflag, Matches_Table* mtable) : _mtable(mtable)
+        unsigned long clientflag)
     {
         bool ret = _mu.create_mysql(host, user, passwd, db, port, unix_socket, clientflag);
         if(!ret) DBG_LOG("mysql create fail.");
@@ -93,7 +223,7 @@ public:
 
     bool insert(Json::Value& va) // 注册
     {
-        #define USER_TABLE_INSERT_USER_SQL "insert into user(name, password, score, total_games, win_games) value(\"%s\", MD5(\"%s\"), 1000, 0, 0);"
+        #define USER_TABLE_INSERT_USER_SQL "insert into user(name, password, score, total_games, win_games) value(\"%s\", MD5(\"%s\"), 1000, 0, 0)"
         if(va["name"].isNull() || va["password"].isNull())
         {
             DBG_LOG("name or password can't be null.");
@@ -116,7 +246,7 @@ public:
 
     bool login(Json::Value& va)
     {
-        #define USER_TABLE_SELECT_BY_NAME_AND_PW_SQL "select id, score, total_games, win_games from user where name = \"%s\" and password = MD5(\"%s\");"
+        #define USER_TABLE_SELECT_BY_NAME_AND_PW_SQL "select id, score, total_games, win_games from user where name = \"%s\" and password = MD5(\"%s\")"
         if(va["name"].isNull() || va["password"].isNull())
         {
             DBG_LOG("name or password can't be null.");
@@ -156,7 +286,7 @@ public:
 
     bool select_by_name(const char* name, Json::Value& va)
     {
-        #define USER_TABLE_SELECT_BY_NAME_SQL "select id, password, score, total_games, win_games from user where name = \"%s\";"
+        #define USER_TABLE_SELECT_BY_NAME_SQL "select id, password, score, total_games, win_games from user where name = \"%s\""
         char buf[1024] = {0};
         snprintf(buf, 1024, USER_TABLE_SELECT_BY_NAME_SQL, name);
         MYSQL_RES* res = nullptr;
@@ -192,7 +322,7 @@ public:
 
     bool select_by_uid(int uid, Json::Value& va)
     {
-        #define USER_TABLE_SELECT_BY_ID_SQL "select name, password, score, total_games, win_games from user where id = %d;"
+        #define USER_TABLE_SELECT_BY_ID_SQL "select name, password, score, total_games, win_games from user where id = %d"
         char buf[1024] = {0};
         snprintf(buf, 1024, USER_TABLE_SELECT_BY_ID_SQL, uid);
         MYSQL_RES* res = nullptr;
@@ -228,7 +358,7 @@ public:
 
     bool win(int uid)
     {
-        #define USER_TABLE_WIN_UPDATE_SQL "update user set score = score + 10, total_games = total_games + 1, win_games = win_games + 1 where id = %d;"
+        #define USER_TABLE_WIN_UPDATE_SQL "update user set score = score + 10, total_games = total_games + 1, win_games = win_games + 1 where id = %d"
         char buf[1024] = {0};
         snprintf(buf, 1024, USER_TABLE_WIN_UPDATE_SQL, uid);
         {
@@ -240,21 +370,21 @@ public:
                 return false;
             }
         }
-        Json::Value va;
-        if(!select_by_uid(uid, va))
-        {
-            DBG_LOG("select_by_uid error.");
-            return false;
-        }
-        std::cout << va["score"].asInt() << std::endl;
-        std::cout << _mtable << std::endl;
-        _mtable->settlement(uid, va["score"].asInt(), true, 10);
+        // Json::Value va;
+        // if(!select_by_uid(uid, va))
+        // {
+        //     DBG_LOG("select_by_uid error.");
+        //     return false;
+        // }
+        // std::cout << va["score"].asInt() << std::endl;
+        // std::cout << _mtable << std::endl;
+        // _mtable->settlement(uid, va["score"].asInt(), true, 10);
         return true;
     }
 
     bool lose(int uid)
     {
-        #define USER_TABLE_LOSE_UPDATE_SQL "update user set score = score - 10, total_games = total_games + 1 where id = %d;"
+        #define USER_TABLE_LOSE_UPDATE_SQL "update user set score = score - 10, total_games = total_games + 1 where id = %d"
         char buf[1024] = {0};
         snprintf(buf, 1024, USER_TABLE_LOSE_UPDATE_SQL, uid);
         {
@@ -266,15 +396,15 @@ public:
                 return false;
             }
         }
-        Json::Value va;
-        if(!select_by_uid(uid, va))
-        {
-            DBG_LOG("select_by_uid error.");
-            return false;
-        }
-        std::cout << va["score"].asInt() << std::endl;
-        std::cout << _mtable << std::endl;
-        _mtable->settlement(uid, va["score"].asInt(), false, -10);
+        // Json::Value va;
+        // if(!select_by_uid(uid, va))
+        // {
+        //     DBG_LOG("select_by_uid error.");
+        //     return false;
+        // }
+        // std::cout << va["score"].asInt() << std::endl;
+        // std::cout << _mtable << std::endl;
+        // _mtable->settlement(uid, va["score"].asInt(), false, -10);
         return true;
     }
 };

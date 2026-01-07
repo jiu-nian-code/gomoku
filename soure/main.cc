@@ -171,16 +171,16 @@ void test_server()
     gs.start();
 }
 
-void test_matches()
-{
-    Matches_Table mt("127.0.0.1", "thx", "thxTHX@0210", "gomoku_db", 3333, NULL, 0);
-    mt.settlement(1, 1200, false, -10);
-    Json::Value va;
-    mt.select_by_uid(1, va);
-    Json::StyledWriter sw;
-    std::string str = sw.write(va);
-    std::cout << str << std::endl;
-}
+// void test_matches()
+// {
+//     Matches_Table mt("127.0.0.1", "thx", "thxTHX@0210", "gomoku_db", 3333, NULL, 0);
+//     mt.settlement(1, 2, 1200, false, true, -10);
+//     Json::Value va;
+//     mt.select_by_uid(1, va);
+//     Json::StyledWriter sw;
+//     std::string str = sw.write(va);
+//     std::cout << str << std::endl;
+// }
 
 int main()
 {

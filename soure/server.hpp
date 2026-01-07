@@ -613,7 +613,40 @@ class Gomoku_Server
             _uid_task.insert(std::make_pair(uid, taskptr));
             _server.set_timer(0, std::bind(&Gomoku_Server::remove_task, this, uid));
         }
-        else return rp->handle_request(req_json);
+        else
+        {
+            int ret = rp->handle_request(req_json);
+            if(ret != 0)
+            {
+                std::unique_lock<std::mutex> lock(_mt);
+                int white_id = rp->get_black();
+                int black_id = rp->get_white();
+                int cur_id = ret == 1 ? black_id : white_id;
+                _om.exit_room(cur_id);
+                _sm.set_session_expire_time(sp->get_sid(), DEFAULT_TIMEOUT);
+                Room_Manager::room_ptr rp = _rm.get_room_by_uid(cur_id);
+                if(rp.get() == nullptr) return;
+                if(!is_close_room_now(cur_id, rp))
+                {
+                    // std::cout << 1 << std::endl;
+                    task_ptr taskptr(new Task(std::bind(&Room_Manager::remove_user_room, &_rm, cur_id)));
+                    if(_uid_task.count(cur_id) != 0 && _uid_time.count(cur_id) != 0 && _uid_task[cur_id]->_is_cancel) // 看看之前map中有没有连接对象
+                    {
+                        _uid_time[cur_id]->cancel();
+                        _server.set_timer(0, std::bind(&Gomoku_Server::append_task, this, cur_id, taskptr));
+                    }
+                    else append_task(cur_id, taskptr);
+                }
+                else
+                {
+                    // std::cout << 2 << std::endl;
+                    // 对面已经退出，cancel取消了，但是cancel不是立即执行，所以将自己也压进任务队列，然后0秒执行，排在cancel后面，确保根据退出顺序结算输赢得分
+                    task_ptr taskptr(new Task(std::bind(&Room_Manager::remove_user_room, &_rm, cur_id)));
+                    _uid_task.insert(std::make_pair(cur_id, taskptr));
+                    _server.set_timer(0, std::bind(&Gomoku_Server::remove_task, this, cur_id));
+                }
+            }
+        }
     }
 
     void ws_handle_message(websocketpp::connection_hdl hdl, std::shared_ptr<websocketpp::config::core::message_type> msg)
@@ -637,8 +670,8 @@ public:
         unsigned int port, const char *unix_socket, 
         unsigned long clientflag, const std::string& root_path):
         _mtable(host, user, passwd, db, port, unix_socket, clientflag),
-        _ut(host, user, passwd, db, port, unix_socket, clientflag, &_mtable),
-        _rm(&_om, &_ut),
+        _ut(host, user, passwd, db, port, unix_socket, clientflag),
+        _rm(&_om, &_ut, &_mtable),
         _sm(&_server),
         _mqm(&_ut, &_om, &_rm),
         _root_path(root_path)

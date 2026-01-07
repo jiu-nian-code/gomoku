@@ -13,19 +13,24 @@ create table if not exists user
 create table if not exists matches
 (
     match_id bigint unsigned primary key auto_increment comment "对局ID",
-    uid int comment "用户id",
-    oppo_uid int comment "对方id",
-    cur_score int comment "当前总分",
-    is_win bool comment "输赢",
-    is_white bool comment "是否是白棋",
-    cur_get int comment "当前得分",
+    white_uid int comment "白棋用户id",
+    black_uid int comment "黑棋用户id",
+    white_cur_score int comment "白棋用户当前总分",
+    black_cur_score int comment "黑棋用户当前总分",
+    white_cur_get int comment "白棋用户当前得分",
+    black_cur_get int comment "黑棋用户当前得分",
+    is_white_win bool comment "是否是白棋赢",
     cur_date timestamp
 );
 
-create table if not exists set
-{
-    
-};
+create table if not exists matches_step
+(
+    match_id bigint unsigned comment "对局id",
+    x int comment "x坐标",
+    y int comment "y坐标",
+    step int unsigned comment "步数",
+    foreign key (match_id) references matches(match_id)
+);
 
 -- 测试用户
 insert into user(name, password, score, total_games, win_games) value("田所浩二", MD5("HOMOhomo@114514"), 1000, 0, 0);

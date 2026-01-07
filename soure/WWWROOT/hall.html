@@ -447,7 +447,7 @@
                 mockData.forEach((item, index) => {
                     const resClass = item.win ? "res-win" : "res-loss";
                     const resText = item.win ? "WIN" : "LOSS";
-                    const sign = item.win ? "+" : "-";
+                    const sign = item.win ? "+" : "";
                     
                     const row = `
                         <div class="history-item">
@@ -458,10 +458,10 @@
                                 </div>
                                 <div class="h-time">${item.time}</div>
                             </div>
-                            <button class="btn-replay-small" onclick="showToast('正在获取录像...')">回放</button>
+                            <button class="btn-replay-small" onclick="goToReplay()">回放</button>
                         </div>
                     `;
-                    
+
                     const $row = $(row);
                     $box.append($row);
 
@@ -485,6 +485,11 @@
             {
                 location.href = "login.html";
             }
+        }
+
+        function goToReplay() {
+            localStorage.setItem('target_game_id', id); // 存入
+            window.location.href = 'game.html';
         }
 
         function showToast(msg)
