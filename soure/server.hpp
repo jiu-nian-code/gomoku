@@ -29,6 +29,7 @@ struct Task
 class Gomoku_Server
 {
     websocketsvr _server;
+    Matches_Step_Table _mst;
     Matches_Table _mtable;
     User_Table _ut;
     Online_Manager _om;
@@ -241,6 +242,45 @@ class Gomoku_Server
         con->append_header("Content-Type", "application/json");
     }
 
+    void review_room_info_handle(const websocketsvr::connection_ptr& con)
+    {
+        websocketpp::config::asio::request_type req = con->get_request();
+        std::string cookie = req.get_header("Cookie");
+        if(cookie.empty())
+        {
+            DBG_LOG("get_header error.");
+            http_resp(con, false, "get cookie fail, please login again.", websocketpp::http::status_code::bad_request);
+            return;
+        }
+        std::string str_sid;
+        if(!get_cookie_value(cookie, "SID", str_sid))
+        {
+            DBG_LOG("get_cookie_value error.");
+            http_resp(con, false, "get sid in cookie fail, please login again.", websocketpp::http::status_code::bad_request);
+            return;
+        }
+        int sid = std::stoi(str_sid);
+        session_ptr sp = _sm.get_session_by_sid(sid);
+        if(sp.get() == nullptr)
+        {
+            DBG_LOG("get_session_by_sid error.");
+            http_resp(con, false, "get session by sid fail, please login again.", websocketpp::http::status_code::bad_request);
+            return;
+        }
+        int uid = sp->get_uid();
+        std::string query = con->get_uri()->get_query();
+        std::vector<std::string> out;
+        String_Util::str_split(query, "=", out);
+        if(out.size() != 2) { DBG_LOG("message error"); return; }
+        Json::Value wb_info;
+        _mst.select_by_mid(std::stoi(out[1]), wb_info);
+        std::string str;
+        Json_Util::serialize(wb_info, str);
+        con->set_body(str);
+        con->set_status(websocketpp::http::status_code::ok);
+        con->append_header("Content-Type", "application/json");
+    }
+
     void file_handle(const websocketsvr::connection_ptr& con, const std::string& uri)
     {
         std::string path = _root_path + uri;
@@ -272,6 +312,9 @@ class Gomoku_Server
         INF_LOG("cookie: %s", req.get_header("Cookie").c_str());
         std::string method = req.get_method();
         std::string uri = req.get_uri();
+        std::vector<std::string> tmp;
+        String_Util::str_split(uri, "?", tmp);
+        uri = tmp[0];
         if(method == "POST", uri == "/reg")
         {
             register_handle(con);
@@ -288,6 +331,11 @@ class Gomoku_Server
         {
             INF_LOG("room_info");
             room_info_handle(con);
+        }
+        else if(method == "GET", uri == "/review_room")
+        {
+            std::cout << "/review_room" << std::endl;
+            review_room_info_handle(con);
         }
         else
         {
@@ -670,8 +718,9 @@ public:
         unsigned int port, const char *unix_socket, 
         unsigned long clientflag, const std::string& root_path):
         _mtable(host, user, passwd, db, port, unix_socket, clientflag),
+        _mst(host, user, passwd, db, port, unix_socket, clientflag),
         _ut(host, user, passwd, db, port, unix_socket, clientflag),
-        _rm(&_om, &_ut, &_mtable),
+        _rm(&_om, &_ut, &_mtable, &_mst),
         _sm(&_server),
         _mqm(&_ut, &_om, &_rm),
         _root_path(root_path)

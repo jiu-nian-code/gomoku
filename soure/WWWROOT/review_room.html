@@ -215,6 +215,8 @@
         // ==========================================
         // 配置逻辑
         // ==========================================
+        const currentGameId = localStorage.getItem('target_game_id');
+        localStorage.removeItem('target_game_id');
         const OFFLINE_MODE = false; // 离线点击测试开关
         const BOARD_SIZE = 15;
         const CANVAS_PX = 600;
@@ -231,7 +233,7 @@
 
         $(document).ready(function()
         {
-            //requestUserData();
+            requestUserData();
             initBoard();
             renderLoop();
         });
@@ -241,7 +243,7 @@
             console.log("正在请求用户信息...");
             $.ajax
             ({
-                url: "http://8.148.76.120:9091/review_room/info",
+                url: `http://8.148.76.120:9091/review_room?match_id=${currentGameId}`,
                 type: "GET",
                 success: function(res, status, xhr) {
                     if(res.result == false)

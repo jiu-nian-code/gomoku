@@ -60,7 +60,7 @@
         .avatar { width: 35px; height: 35px; border-radius: 50%; border: 2px solid var(--neon-blue); }
 
         .profile-dropdown {
-            position: absolute; top: 75px; right: 0; width: 240px;
+            position: absolute; top: 100%; right: 0; width: 240px;
             background: var(--card-bg); border: 1px solid var(--border);
             border-radius: 15px; padding: 15px; display: none; flex-direction: column; gap: 10px;
             backdrop-filter: blur(25px); box-shadow: 0 15px 40px rgba(0,0,0,1);
@@ -439,7 +439,8 @@
                         win: recordObj.is_win,
                         score: recordObj.cur_score,
                         change: recordObj.cur_get,
-                        time: recordObj.cur_date
+                        time: recordObj.cur_date,
+                        matchId: recordObj.match_id
                     });
                 }
 
@@ -458,7 +459,7 @@
                                 </div>
                                 <div class="h-time">${item.time}</div>
                             </div>
-                            <button class="btn-replay-small" onclick="goToReplay()">回放</button>
+                            <button class="btn-replay-small" onclick="goToReplay(${item.matchId})">回放</button>
                         </div>
                     `;
 
@@ -487,9 +488,9 @@
             }
         }
 
-        function goToReplay() {
-            localStorage.setItem('target_game_id', id); // 存入
-            window.location.href = 'game.html';
+        function goToReplay(mid) {
+            localStorage.setItem('target_game_id', mid); // 存入
+            window.location.href = 'review_room.html';
         }
 
         function showToast(msg)

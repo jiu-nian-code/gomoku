@@ -80,10 +80,10 @@ class Room
         return false;
     }
 public:
-    Room(int room_id, Online_Manager* om, User_Table* ut, Matches_Table* mtable) : 
+    Room(int room_id, Online_Manager* om, User_Table* ut, Matches_Table* mtable, Matches_Step_Table * mst) : 
         _room_id(room_id), _user_count(0),
         _white_id(-1), _black_id(-1), _cur_id(-1),
-        _om(om), _ut(ut), _mtable(mtable), _gs(GAME_START),
+        _om(om), _ut(ut), _mtable(mtable), _mst(mst), _gs(GAME_START),
         _chessboard(CHESSBOARD_SIZE, std::vector<int>(CHESSBOARD_SIZE, 0))
     {
         DBG_LOG("%d room create success.", _room_id);
@@ -274,7 +274,7 @@ public:
                 if(!_mtable->settlement(_white_id, _black_id, va2["score"].asInt(), va1["score"].asInt(), -10, 10, false))
                 { DBG_LOG("settlement error."); return false; }
             }
-            // _mst->settlement(_mtable->get_mid_by_uid(winner), _step);
+            _mst->settlement(_mtable->get_mid_by_uid(winner), _step);
             _gs = GAME_OVER;
             broad_cast(resp);
         }
@@ -348,7 +348,7 @@ public:
                     if(!_mtable->settlement(_white_id, _black_id, va2["score"].asInt(), va1["score"].asInt(), -10, 10, false))
                     { DBG_LOG("settlement error."); return false; }
                 }
-                // _mst->settlement(_mtable->get_mid_by_uid(winner), _step);
+                _mst->settlement(_mtable->get_mid_by_uid(winner), _step);
                 _gs = GAME_OVER;
             }
         }
@@ -395,13 +395,14 @@ private:
     Online_Manager* _om;
     User_Table* _ut;
     Matches_Table* _mtable;
+    Matches_Step_Table * _mst;
     int _room_id_alloc;
     // using room_ptr = std::shared_ptr<Room>;
     std::unordered_map<int, room_ptr> _rid_room;
     std::unordered_map<int, int> _user_room;
     std::mutex _mt;
 public:
-    Room_Manager(Online_Manager* om, User_Table* ut, Matches_Table* mtable) : _om(om), _ut(ut), _mtable(mtable), _room_id_alloc(0) {}
+    Room_Manager(Online_Manager* om, User_Table* ut, Matches_Table* mtable, Matches_Step_Table * mst) : _om(om), _ut(ut), _mtable(mtable), _mst(mst), _room_id_alloc(0) {}
     ~Room_Manager() {}
 
     room_ptr create_room(int user1, int user2) // 匹配成功使用两位用户id创建房间
@@ -417,7 +418,7 @@ public:
             DBG_LOG("user %d is not in hall.", user2);
             return room_ptr();
         }
-        room_ptr tmp(new Room(_room_id_alloc, _om, _ut, _mtable));
+        room_ptr tmp(new Room(_room_id_alloc, _om, _ut, _mtable, _mst));
         std::unique_lock<std::mutex> lock(_mt);
         tmp->set_white(user1);
         tmp->set_black(user2);

@@ -148,7 +148,7 @@ public:
         if(!ret) DBG_LOG("mysql create fail.");
     }
 
-    bool select_by_uid(int mid, Json::Value& va)
+    bool select_by_mid(int mid, Json::Value& va)
     {
         #define MATCHES_STEP_TABLE_SELECT_BY_UID_SQL "select x, y from matches_step where match_id = %d order by step asc"
         char buf[1024] = {0};
