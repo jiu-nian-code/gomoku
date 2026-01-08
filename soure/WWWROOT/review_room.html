@@ -146,8 +146,7 @@
 <body>
 
     <header>
-        <div style="font-size: 18px; font-weight: bold; color: var(--neon-blue); letter-spacing: 2px;">游戏房间</div>
-        <div id="game_screen" style="font-size: 14px; color: var(--neon-blue); text-align: center; font-weight: bold;">等待连接</div>
+        <div style="font-size: 18px; font-weight: bold; color: var(--neon-blue); letter-spacing: 2px;">回放房间</div>
         <button class="exit-btn" onclick="handleExit()">退出房间</button>
     </header>
 
@@ -155,7 +154,7 @@
 
     <div class="player-wing left-wing">
         <div class="avatar-frame">
-            <img src="./image/yeshou.jpg">
+            <img src="" id="user_avatar_me">
             <div class="hologram-card">
                 <p style="color:var(--neon-blue); margin-bottom:10px; border-bottom:1px solid #333;" id="my_name_val">己方用户名</p>
                 <p>UID：<span id="my_uid_val">0</span></p>
@@ -168,7 +167,7 @@
 
     <div class="player-wing right-wing">
         <div class="avatar-frame">
-            <img src="./image/yeshou.jpg">
+            <img src="" id="user_avatar_you">
             <div class="hologram-card">
                 <p style="color:var(--neon-blue); margin-bottom:10px; border-bottom:1px solid #333;" id="op_name_val">对方用户名</p>
                 <p>UID：<span id="op_uid_val">0</span></p>
@@ -193,29 +192,17 @@
             </div>
         </div>
     </main>
-
-<!--     <div class="chat-system">
-        <div class="chat-min" id="chatMin" onclick="toggleChat(true)">
-            <div id="lastMsg" style="font-size:13px; color:var(--neon-blue);">聊天室</div>
-        </div>
-        <div class="chat-max" id="chatMax">
-            <div style="padding:15px; border-bottom:1px solid var(--glass-border); display:flex; justify-content:space-between;">
-                <span>聊天室</span>
-                <span style="cursor:pointer" onclick="toggleChat(false)">[ _ ]</span>
-            </div>
-            <div class="history" id="chatContent"></div>
-            <div class="input-row">
-                <input type="text" id="chatInput" placeholder="输入信息发送...">
-                <button onclick="sendChat()">发送</button>
-            </div>
-        </div>
-    </div> -->
-
     <script>
         // ==========================================
         // 配置逻辑
         // ==========================================
-        const currentGameId = localStorage.getItem('target_game_id');
+        const currentGameId = getUrlParameter();
+
+        function getUrlParameter() {
+            const urlParams = new URLSearchParams(window.location.search);
+            return urlParams.get('mid');
+        }
+
         localStorage.removeItem('target_game_id');
         const OFFLINE_MODE = false; // 离线点击测试开关
         const BOARD_SIZE = 15;
@@ -243,7 +230,7 @@
             console.log("正在请求用户信息...");
             $.ajax
             ({
-                url: `http://8.148.76.120:9091/review_room?match_id=${currentGameId}`,
+                url: `http://8.148.76.120:80/review_room?match_id=${currentGameId}`,
                 type: "GET",
                 success: function(res, status, xhr) {
                     if(res.result == false)
@@ -252,11 +239,13 @@
                         location.replace("/hall.html");
                         return;
                     }
-                    else if(res.uid == res.black_id)
+                    else if(res.uid == res.black_uid)
                     {
                         $('#my_name_val').text(res.black_name + "(黑棋方)");
-                        $('#my_uid_val').text(res.black_id);
-                        $('#my_score_val').text(res.black_score);
+                        $('#my_uid_val').text(res.black_uid);
+                        $('#my_score_val').text(res.black_cur_score);
+                        const avatarUrl_1 = "http://8.148.76.120:80/image/avatar/" + res.black_uid;
+                        $('#user_avatar_me').attr('src', avatarUrl_1);
                         let black_win_rate = null;
                         if(res.black_total_games != 0)
                         {
@@ -269,8 +258,10 @@
                         $('#my_win_rate_val').text(black_win_rate);
 
                         $('#op_name_val').text(res.white_name + "(白棋方)");
-                        $('#op_uid_val').text(res.white_id);
-                        $('#op_score_val').text(res.white_score);
+                        $('#op_uid_val').text(res.white_uid);
+                        $('#op_score_val').text(res.white_cur_score);
+                        const avatarUrl_2 = "http://8.148.76.120:80/image/avatar/" + res.white_uid;
+                        $('#user_avatar_you').attr('src', avatarUrl_2);
                         let white_win_rate = null;
                         if(res.white_total_games != 0)
                         {
@@ -282,11 +273,13 @@
                         }
                         $('#op_win_rate_val').text(white_win_rate);
                     }
-                    else if(res.uid == res.white_id)
+                    else if(res.uid == res.white_uid)
                     {
                         $('#my_name_val').text(res.white_name + "(白棋方)");
-                        $('#my_uid_val').text(res.white_id);
-                        $('#my_score_val').text(res.white_score);
+                        $('#my_uid_val').text(res.white_uid);
+                        $('#my_score_val').text(res.white_cur_score);
+                        const avatarUrl_1 = "http://8.148.76.120:80/image/avatar/" + res.white_uid;
+                        $('#user_avatar_me').attr('src', avatarUrl_1);
                         let white_win_rate = null;
                         if(res.white_total_games != 0)
                         {
@@ -299,8 +292,10 @@
                         $('#my_win_rate_val').text(white_win_rate);
 
                         $('#op_name_val').text(res.black_name + "(黑棋方)");
-                        $('#op_uid_val').text(res.black_id);
-                        $('#op_score_val').text(res.black_score);
+                        $('#op_uid_val').text(res.black_uid);
+                        $('#op_score_val').text(res.black_cur_score);
+                        const avatarUrl_2 = "http://8.148.76.120:80/image/avatar/" + res.black_uid;
+                        $('#user_avatar_you').attr('src', avatarUrl_2);
                         let black_win_rate = null;
                         if(res.black_total_games != 0)
                         {
@@ -317,6 +312,54 @@
                         showToast("未知错误");
                         return;
                     }
+                    // 在成功回调函数的最后，替换掉原来的测试代码
+
+                    // 处理棋步历史数据
+                    let stepHistory = [];
+
+                    if(res.step && Array.isArray(res.step)) {
+                        // 从服务器返回的steps数组中提取数据
+                        res.step.forEach(function(stepData, index) {
+                            // 如果stepData是字符串，先解析
+                            if (typeof stepData === 'string') {
+                                try {
+                                    stepData = JSON.parse(stepData);
+                                } catch(e) {
+                                    console.error("解析步骤数据失败:", e);
+                                    return;  // 跳过这个步骤
+                                }
+                            }
+              
+                            // 转换为testHistory格式: {r: 行, c: 列, color: 颜色}
+                            // 根据步数确定颜色：奇数步为黑棋(1)，偶数步为白棋(2)
+                            const stepNumber = stepData.step_number !== undefined ? stepData.step_number : (index + 1);
+                            const color = (stepNumber % 2 === 1) ? 2 : 1;
+                            
+                            // 注意：y对应行(r)，x对应列(c)
+                            const row = stepData.x !== undefined ? stepData.x : stepData.row;
+                            const col = stepData.y !== undefined ? stepData.y : stepData.col;
+                            
+                            if(row !== undefined && col !== undefined) {
+                                stepHistory.push({
+                                    r: row,
+                                    c: col,
+                                    color: color
+                                });
+                            }
+                        });
+                    } else {
+                        // 如果没有step数据，使用测试数据
+                        // stepHistory = [
+                        //     {r: 7, c: 7, color: 1}, {r: 7, c: 8, color: 2},
+                        //     {r: 8, c: 8, color: 1}, {r: 6, c: 6, color: 2},
+                        //     {r: 9, c: 9, color: 1}, {r: 5, c: 5, color: 2},
+                        //     {r: 6, c: 8, color: 1}, {r: 8, c: 6, color: 2},
+                        //     {r: 10, c: 10, color: 1}, {r: 4, c: 4, color: 2}
+                        // ];
+                    }
+
+                    // 传递给回放逻辑
+                    loadReplayData(stepHistory);
                 },
                 error: function(xhr) {
                     showToast("用户信息获取错误");
@@ -332,9 +375,6 @@
             }
         }
 
-        // ==========================================
-        // 渲染逻辑
-        // ==========================================
         function renderLoop() {
             context.clearRect(0, 0, CANVAS_PX, CANVAS_PX);
             
@@ -414,9 +454,6 @@
             context.restore();
         }
 
-        // ==========================================
-        // 业务交互
-        // ==========================================
         canvas.onclick = function (e)
         {
             if(is_over) return;
@@ -430,20 +467,8 @@
             sendChess(row, col);
         };
 
-        // function sendChess(r, c)
-        // {
-        //     var chess_info = {
-        //         optype: "put_chess",
-        //         room_id: room_info.room_id,
-        //         uid: room_info.uid,
-        //         x : r,
-        //         y : c
-        //     }
-        //     ws_hdl.send(JSON.stringify(chess_info));
-        // }
-
-        // var ws_url = "ws://" + location.host + "/room";
-        // var ws_hdl = new WebSocket(ws_url);
+        var ws_url = "ws://" + location.host + "/review_room";
+        var ws_hdl = new WebSocket(ws_url);
 
         // // window.onbeforeunload = function() { if(ws_hdl) ws_hdl.close(); }
         // ws_hdl.onopen = function()
@@ -533,45 +558,21 @@
 
         function handleExit()
         {
-            if(confirm("警告：游戏中途退出判负"))
+            if(confirm("是否退出房间"))
             {
-                if(ws_hdl) 
-                {
-                    // ws_hdl.close();
-                    var exit_info = {
-                        optype: "exit",
-                        room_id: room_info.room_id,
-                        uid: room_info.uid,
-                    }
-                    ws_hdl.send(JSON.stringify(exit_info));
-                }
+                // if(ws_hdl) 
+                // {
+                //     // ws_hdl.close();
+                //     var exit_info = {
+                //         optype: "exit",
+                //         room_id: room_info.room_id,
+                //         uid: room_info.uid,
+                //     }
+                //     ws_hdl.send(JSON.stringify(exit_info));
+                // }
                 location.replace("/hall.html");
             }
         }
-
-        // function sendChat() {
-        //     let val = $('#chatInput').val();
-        //     if(!val) return;
-        //     // if(OFFLINE_MODE) renderMsg("LOCAL", val, true);
-        //     // else {
-        //         ws_hdl.send(JSON.stringify({ optype: "chat", room_id: room_info.room_id, uid: room_info.uid, message: val }));
-        //     // }
-        //     $('#chatInput').val('');
-        // }
-
-        // function renderMsg(user, text, isMe) {
-        //     let cls = isMe ? 'msg-me' : 'msg-peer';
-        //     $('#chatContent').append(`<div class="msg-box ${cls}"><b>${user}:</b> ${text}</div>`);
-        //     $('#chatContent').scrollTop($('#chatContent')[0].scrollHeight);
-        //     $('#lastMsg').text(`${user}: ${text}`);
-        // }
-
-        // function updateScreenStatus(me)
-        // {
-        //     let screen = document.getElementById("game_screen");
-        //     screen.innerHTML = me ? "[ 你的回合 ]" : "[ 对方回合 ]";
-        //     screen.style.color = me ? "var(--neon-blue)" : "rgba(255,255,255,0.5)";
-        // }
 
         function toggleChat(show)
         {
@@ -613,17 +614,17 @@
         const AUTO_SPEED = 1000;    // 自动播放间隔 (毫秒)
 
         // --- 离线测试模拟数据 (可在成功获取 AJAX 后替换) ---
-        $(document).ready(function() {
-            // 模拟 10 步棋用于离线测试
-            const testHistory = [
-                {r: 7, c: 7, color: 1}, {r: 7, c: 8, color: 2},
-                {r: 8, c: 8, color: 1}, {r: 6, c: 6, color: 2},
-                {r: 9, c: 9, color: 1}, {r: 5, c: 5, color: 2},
-                {r: 6, c: 8, color: 1}, {r: 8, c: 6, color: 2},
-                {r: 10, c: 10, color: 1}, {r: 4, c: 4, color: 2}
-            ];
-            loadReplayData(testHistory);
-        });
+        // $(document).ready(function() {
+        //     // 模拟 10 步棋用于离线测试
+        //     const testHistory = [
+        //         {r: 7, c: 7, color: 1}, {r: 7, c: 8, color: 2},
+        //         {r: 8, c: 8, color: 1}, {r: 6, c: 6, color: 2},
+        //         {r: 9, c: 9, color: 1}, {r: 5, c: 5, color: 2},
+        //         {r: 6, c: 8, color: 1}, {r: 8, c: 6, color: 2},
+        //         {r: 10, c: 10, color: 1}, {r: 4, c: 4, color: 2}
+        //     ];
+        //     loadReplayData(testHistory);
+        // });
 
         /** 加载回放数据接口 */
         function loadReplayData(data) {

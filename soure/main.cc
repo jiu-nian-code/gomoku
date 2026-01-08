@@ -6,6 +6,7 @@
 // #include"matcher.hpp"
 // #include"matcher.hpp"
 #include"server.hpp"
+#include"Daemon.hpp"
 
 void test_Mysql_Util()
 {
@@ -184,6 +185,7 @@ void test_server()
 
 int main()
 {
+    Daemon();
     test_server();
     return 0;
 }

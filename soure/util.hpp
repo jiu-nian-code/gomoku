@@ -147,4 +147,21 @@ public:
         ifs.close();
         return true;
     }
+
+    static bool write_file(const std::string& filename, std::string& buf)
+    {
+        std::ofstream ofs(filename, std::ios::binary | std::ios::trunc);
+        if(!ofs.is_open())
+        {
+            ERR_LOG("file open fail.");
+            return false;
+        }
+        ofs.write(buf.data(), buf.size());
+        if(!ofs.good())
+        {
+            ERR_LOG("write file fail.");
+            return false;
+        }
+        return true;
+    }
 };

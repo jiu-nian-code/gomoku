@@ -8,6 +8,7 @@
 #include<queue>
 
 #define RCONNECTION_TIME 10000
+#define TOPK 10
 
 struct Task
 {
@@ -29,6 +30,7 @@ struct Task
 class Gomoku_Server
 {
     websocketsvr _server;
+    User_Avatar_Table _uat;
     Matches_Step_Table _mst;
     Matches_Table _mtable;
     User_Table _ut;
@@ -273,9 +275,14 @@ class Gomoku_Server
         String_Util::str_split(query, "=", out);
         if(out.size() != 2) { DBG_LOG("message error"); return; }
         Json::Value wb_info;
-        _mst.select_by_mid(std::stoi(out[1]), wb_info);
+        unsigned long long mid = std::stoull(out[1]);
+        _mst.select_by_mid(mid, wb_info);
+        _mtable.select_by_mid(mid, wb_info);
+        _ut.select_ntw_by_uid(wb_info["white_uid"].asInt(), wb_info["black_uid"].asInt(), wb_info);
+        wb_info["uid"] = uid;
         std::string str;
         Json_Util::serialize(wb_info, str);
+        std::cout << str << std::endl;
         con->set_body(str);
         con->set_status(websocketpp::http::status_code::ok);
         con->append_header("Content-Type", "application/json");
@@ -283,8 +290,19 @@ class Gomoku_Server
 
     void file_handle(const websocketsvr::connection_ptr& con, const std::string& uri)
     {
+        std::cout << uri << std::endl;
         std::string path = _root_path + uri;
         if(uri == "/") path += "login.html";
+        size_t pos = uri.find("/image/avatar/");
+        if(pos != std::string::npos)
+        {
+            std::vector<std::string> out;
+            String_Util::str_split(uri, "/", out);
+            int uid = std::stoi(out[2]);
+            int aid = _uat.get_aid_by_uid(uid);
+            if(aid > 0) path = _root_path + "/image/" + std::to_string(aid) + ".jpg";
+            else path = _root_path + "/image/" + "gaoya.jpg";
+        }
         std::string buf;
         if(!File_Util::read_file(path, buf))
         {
@@ -299,6 +317,43 @@ class Gomoku_Server
         }
         con->set_body(buf);
         con->set_status(websocketpp::http::status_code::ok);
+    }
+
+    void user_avatar_handle(const websocketsvr::connection_ptr& con)
+    {
+        websocketpp::config::asio::request_type req = con->get_request();
+        std::string cookie = req.get_header("Cookie");
+        if(cookie.empty())
+        {
+            DBG_LOG("get_header error.");
+            http_resp(con, false, "get cookie fail, please login again.", websocketpp::http::status_code::bad_request);
+            return;
+        }
+        std::string str_sid;
+        if(!get_cookie_value(cookie, "SID", str_sid))
+        {
+            DBG_LOG("get_cookie_value error.");
+            http_resp(con, false, "get sid in cookie fail, please login again.", websocketpp::http::status_code::bad_request);
+            return;
+        }
+        int sid = std::stoi(str_sid);
+        session_ptr sp = _sm.get_session_by_sid(sid);
+        if(sp.get() == nullptr)
+        {
+            DBG_LOG("get_session_by_sid error.");
+            http_resp(con, false, "get session by sid fail, please login again.", websocketpp::http::status_code::bad_request);
+            return;
+        }
+        int uid = sp->get_uid();
+        int aid = _uat.get_aid_by_uid(uid);
+        while(aid < 0)
+        {
+            if(!_uat.insert_avatar_by_uid(uid)) { DBG_LOG("insert_avatar_by_uid error"); return; }
+            aid = _uat.get_aid_by_uid(uid);
+        }
+        std::string str = req.get_body();
+        std::string file_name = "./WWWROOT/image/" + std::to_string(aid) + ".jpg";
+        File_Util::write_file(file_name, str);
     }
 
     void handle_http(websocketpp::connection_hdl hdl)
@@ -336,6 +391,10 @@ class Gomoku_Server
         {
             std::cout << "/review_room" << std::endl;
             review_room_info_handle(con);
+        }
+        else if(method == "POST", uri == "/user/upload_avatar")
+        {
+            user_avatar_handle(con);
         }
         else
         {
@@ -395,7 +454,8 @@ class Gomoku_Server
     {
         session_ptr sp = get_session_by_cookie(con, "hall_ready");
         if(sp.get() == nullptr) return;
-        if(_om.is_in_hall(sp->get_uid()) || _om.is_in_room(sp->get_uid()))
+        int uid = sp->get_uid();
+        if(_om.is_in_hall(uid) || _om.is_in_room(uid) || _om.is_in_review_room(uid))
         {
             DBG_LOG("repeated login.");
             Json::Value resp;
@@ -418,7 +478,7 @@ class Gomoku_Server
         if(sp.get() == nullptr) return;
         Json::Value resp;
         int uid = sp->get_uid();
-        if(_om.is_in_hall(uid) || _om.is_in_room(uid))
+        if(_om.is_in_hall(uid) || _om.is_in_room(uid) || _om.is_in_review_room(uid))
         {
             DBG_LOG("repeated login.");
             resp["optype"] = "room_ready";
@@ -447,6 +507,28 @@ class Gomoku_Server
         return ws_resp(con, resp);
     }
 
+    void ws_open_review_room(websocketsvr::connection_ptr& con)
+    {
+        session_ptr sp = get_session_by_cookie(con, "review_room_ready");
+        if(sp.get() == nullptr) return;
+        int uid = sp->get_uid();
+        if(_om.is_in_hall(uid) || _om.is_in_room(uid) || _om.is_in_review_room(uid))
+        {
+            DBG_LOG("repeated login.");
+            Json::Value resp;
+            resp["optype"] = "review_room_ready";
+            resp["result"] = false;
+            resp["reason"] = "repeated login!";
+            return ws_resp(con, resp);
+        }
+        _om.enter_review_room(sp->get_uid(), con);
+        Json::Value resp;
+        resp["optype"] = "review_room_ready";
+        resp["result"] = true;
+        ws_resp(con, resp);
+        _sm.set_session_expire_time(sp->get_sid(), SESSION_FOREVER);
+    }
+
     void ws_handle_open(websocketpp::connection_hdl hdl)
     {
         INF_LOG("open websocket.");
@@ -461,6 +543,10 @@ class Gomoku_Server
         else if(uri == "/room")
         {
             ws_open_room(con);
+        }
+        else if(uri == "/review_room")
+        {
+            ws_open_review_room(con);
         }
     }
 
@@ -557,6 +643,14 @@ class Gomoku_Server
         }
     }
 
+    void ws_close_review_room(const websocketsvr::connection_ptr& con)
+    {
+        session_ptr sp = get_session_by_cookie(con, "hall_close");
+        if(sp.get() == nullptr) return;
+        _om.exit_review_room(sp->get_uid());
+        _sm.set_session_expire_time(sp->get_sid(), DEFAULT_TIMEOUT);
+    }
+
     void ws_handle_close(websocketpp::connection_hdl hdl)
     {
         INF_LOG("close websocket.");
@@ -570,6 +664,10 @@ class Gomoku_Server
         else if(uri == "/room")
         {
             return ws_close_room(con);
+        }
+        else if(uri == "/review_room")
+        {
+            return ws_close_review_room(con);
         }
     }
 
@@ -612,6 +710,11 @@ class Gomoku_Server
         {
             resp["optype"] = "get_matches";
             _mtable.select_by_uid(req_json["uid"].asInt(), resp);
+        }
+        else if(!req_json["optype"].isNull() && req_json["optype"].asString() == "get_rank")
+        {
+            resp["optype"] = "get_rank";
+            _ut.get_top_k(TOPK, resp);
         }
         else
         {
@@ -717,6 +820,7 @@ public:
         const char *passwd, const char *db, 
         unsigned int port, const char *unix_socket, 
         unsigned long clientflag, const std::string& root_path):
+        _uat(host, user, passwd, db, port, unix_socket, clientflag),
         _mtable(host, user, passwd, db, port, unix_socket, clientflag),
         _mst(host, user, passwd, db, port, unix_socket, clientflag),
         _ut(host, user, passwd, db, port, unix_socket, clientflag),
@@ -736,7 +840,7 @@ public:
 
     void start()
     {
-        _server.listen(9091);
+        _server.listen(80);
         _server.start_accept();
         _server.run();
     }

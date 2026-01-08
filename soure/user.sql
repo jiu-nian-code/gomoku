@@ -32,6 +32,13 @@ create table if not exists matches_step
     foreign key (match_id) references matches(match_id)
 );
 
+create table if not exists user_avatar
+(
+    avatar_id int primary key auto_increment comment "头像ID",
+    id int comment "用户ID",
+    foreign key (id) references user(id)
+);
+
 -- 测试用户
 insert into user(name, password, score, total_games, win_games) value("田所浩二", MD5("HOMOhomo@114514"), 1000, 0, 0);
 insert into user(name, password, score, total_games, win_games) value("佐佐木淳平", MD5("YADAmoyada@114514"), 1000, 0, 0);

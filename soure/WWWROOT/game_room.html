@@ -114,7 +114,7 @@
 
     <div class="player-wing left-wing">
         <div class="avatar-frame">
-            <img src="./image/yeshou.jpg">
+            <img src="" id="user_avatar_me">
             <div class="hologram-card">
                 <p style="color:var(--neon-blue); margin-bottom:10px; border-bottom:1px solid #333;" id="my_name_val">己方用户名</p>
                 <p>UID：<span id="my_uid_val">0</span></p>
@@ -127,7 +127,7 @@
 
     <div class="player-wing right-wing">
         <div class="avatar-frame">
-            <img src="./image/yeshou.jpg">
+            <img src="" id="user_avatar_you">
             <div class="hologram-card">
                 <p style="color:var(--neon-blue); margin-bottom:10px; border-bottom:1px solid #333;" id="op_name_val">对方用户名</p>
                 <p>UID：<span id="op_uid_val">0</span></p>
@@ -189,7 +189,7 @@
             console.log("正在请求用户信息...");
             $.ajax
             ({
-                url: "http://8.148.76.120:9091/room/info",
+                url: "http://8.148.76.120:80/room/info",
                 type: "GET",
                 success: function(res, status, xhr) {
                     if(res.result == false)
@@ -203,6 +203,8 @@
                         $('#my_name_val').text(res.black_name + "(黑棋方)");
                         $('#my_uid_val').text(res.black_id);
                         $('#my_score_val').text(res.black_score);
+                        const avatarUrl_1 = "http://8.148.76.120:80/image/avatar/" + res.black_id;
+                        $('#user_avatar_me').attr('src', avatarUrl_1);
                         let black_win_rate = null;
                         if(res.black_total_games != 0)
                         {
@@ -217,6 +219,8 @@
                         $('#op_name_val').text(res.white_name + "(白棋方)");
                         $('#op_uid_val').text(res.white_id);
                         $('#op_score_val').text(res.white_score);
+                        const avatarUrl_2 = "http://8.148.76.120:80/image/avatar/" + res.white_id;
+                        $('#user_avatar_you').attr('src', avatarUrl_2);
                         let white_win_rate = null;
                         if(res.white_total_games != 0)
                         {
@@ -233,6 +237,8 @@
                         $('#my_name_val').text(res.white_name + "(白棋方)");
                         $('#my_uid_val').text(res.white_id);
                         $('#my_score_val').text(res.white_score);
+                        const avatarUrl_1 = "http://8.148.76.120:80/image/avatar/" + res.white_id;
+                        $('#user_avatar_me').attr('src', avatarUrl_1);
                         let white_win_rate = null;
                         if(res.white_total_games != 0)
                         {
@@ -247,6 +253,8 @@
                         $('#op_name_val').text(res.black_name + "(黑棋方)");
                         $('#op_uid_val').text(res.black_id);
                         $('#op_score_val').text(res.black_score);
+                        const avatarUrl_2 = "http://8.148.76.120:80/image/avatar/" + res.black_id;
+                        $('#user_avatar_you').attr('src', avatarUrl_2);
                         let black_win_rate = null;
                         if(res.black_total_games != 0)
                         {

@@ -6,11 +6,19 @@
     <title>登录</title>
     <style>
         /* 基础样式重置 */
+        :root {
+            --neon-blue: #00d2ff;
+            --neon-purple: #9d50bb;
+            --glass: rgba(255, 255, 255, 0.05);
+            --border: rgba(255, 255, 255, 0.15);
+            --card-bg: rgba(10, 15, 25, 0.95);
+        }
+
         * {
             margin: 0;
             padding: 0;
             box-sizing: border-box;
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            font-family: 'Segoe UI', 'Microsoft YaHei', sans-serif;
         }
 
         body {
@@ -18,11 +26,11 @@
             justify-content: center;
             align-items: center;
             min-height: 100vh;
-            background: linear-gradient(45deg, #0f0c29, #302b63, #24243e);
+            background: radial-gradient(circle at center, #1b2735 0%, #050608 100%);
             overflow: hidden;
         }
 
-        /* 背景装饰球 */
+        /* 背景装饰球 - 调整为与大厅一致的冷色调 */
         .background-circles {
             position: absolute;
             width: 100%;
@@ -34,21 +42,22 @@
             position: absolute;
             border-radius: 50%;
             filter: blur(80px);
+            opacity: 0.4;
         }
 
-        .circle-1 { width: 300px; height: 300px; background: #ff0080; top: -100px; left: -100px; }
-        .circle-2 { width: 400px; height: 400px; background: #7928ca; bottom: -150px; right: -100px; }
+        .circle-1 { width: 400px; height: 400px; background: var(--neon-blue); top: -100px; left: -100px; }
+        .circle-2 { width: 500px; height: 500px; background: var(--neon-purple); bottom: -150px; right: -100px; }
 
-        /* 容器 */
+        /* 容器 - 强化玻璃拟态 */
         .container {
             position: relative;
             width: 400px;
-            height: 500px;
-            background: rgba(255, 255, 255, 0.1);
-            border-radius: 20px;
-            backdrop-filter: blur(15px);
-            border: 1px solid rgba(255, 255, 255, 0.2);
-            box-shadow: 0 25px 45px rgba(0, 0, 0, 0.2);
+            min-height: 500px;
+            background: var(--card-bg);
+            border-radius: 30px;
+            backdrop-filter: blur(25px);
+            border: 1px solid var(--border);
+            box-shadow: 0 25px 45px rgba(0, 0, 0, 0.5);
             display: flex;
             flex-direction: column;
             justify-content: center;
@@ -73,11 +82,16 @@
             color: #fff;
             margin-bottom: 30px;
             text-align: center;
-            letter-spacing: 2px;
+            letter-spacing: 5px;
             font-size: 1.8rem;
+            font-weight: 900;
+            background: linear-gradient(to right, var(--neon-blue), #fff);
+            -webkit-background-clip: text;
+            background-clip: text;
+            -webkit-text-fill-color: transparent;
         }
 
-        /* 输入框样式 */
+        /* 输入框样式 - 适配大厅 UI */
         .input-group {
             position: relative;
             margin-bottom: 25px;
@@ -85,92 +99,93 @@
 
         .input-group input {
             width: 100%;
-            padding: 12px 15px;
-            background: rgba(255, 255, 255, 0.2);
-            border: none;
+            padding: 14px 20px;
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid var(--border);
             outline: none;
-            border-radius: 10px;
+            border-radius: 12px;
             color: #fff;
             font-size: 1rem;
-            border: 1px solid rgba(255, 255, 255, 0.1);
             transition: 0.3s;
         }
 
         .input-group input::placeholder {
-            color: rgba(255, 255, 255, 0.6);
+            color: rgba(255, 255, 255, 0.3);
         }
 
         .input-group input:focus {
-            background: rgba(255, 255, 255, 0.3);
-            border-color: #fff;
+            background: rgba(255, 255, 255, 0.08);
+            border-color: var(--neon-blue);
+            box-shadow: 0 0 15px rgba(0, 210, 255, 0.2);
         }
 
-        /* 按钮样式 */
+        /* 按钮样式 - 适配大厅主按钮 */
         .btn {
             width: 100%;
-            padding: 12px;
+            padding: 14px;
             border: none;
-            border-radius: 10px;
-            background: #fff;
-            color: #302b63;
+            border-radius: 12px;
+            background: linear-gradient(90deg, var(--neon-blue), var(--neon-purple));
+            color: #fff;
             font-size: 1rem;
-            font-weight: 600;
+            font-weight: bold;
             cursor: pointer;
             transition: 0.3s;
             margin-top: 10px;
+            letter-spacing: 2px;
         }
 
         .btn:hover {
-            background: #7928ca;
-            color: #fff;
-            box-shadow: 0 0 15px rgba(121, 40, 202, 0.6);
+            transform: translateY(-2px);
+            box-shadow: 0 5px 20px rgba(0, 210, 255, 0.4);
+            filter: brightness(1.1);
         }
 
         /* 切换链接 */
         .switch-link {
-            margin-top: 20px;
-            color: rgba(255, 255, 255, 0.7);
+            margin-top: 25px;
+            color: rgba(255, 255, 255, 0.5);
             font-size: 0.9rem;
             text-align: center;
         }
 
         .switch-link a {
-            color: #fff;
+            color: var(--neon-blue);
             text-decoration: none;
             font-weight: 600;
             cursor: pointer;
+            transition: 0.3s;
         }
 
         .switch-link a:hover {
+            text-shadow: 0 0 10px var(--neon-blue);
             text-decoration: underline;
         }
 
-        /* Toast 弹窗基础样式 */
+        /* Toast 弹窗样式适配 */
         .toast {
             position: fixed;
             top: 20px;
             left: 50%;
             transform: translateX(-50%) translateY(-20px);
-            background: rgba(0, 0, 0, 0.8); /* 黑色半透明 */
+            background: rgba(10, 15, 25, 0.9);
             color: #fff;
-            padding: 10px 25px;
-            border-radius: 8px;
+            padding: 12px 30px;
+            border-radius: 10px;
             font-size: 14px;
             z-index: 1000;
             opacity: 0;
             transition: all 0.4s ease;
-            pointer-events: none; /* 防止遮挡鼠标点击 */
-            backdrop-filter: blur(5px);
-            border: 1px solid rgba(255, 255, 255, 0.1);
-            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+            pointer-events: none;
+            backdrop-filter: blur(10px);
+            border: 1px solid var(--neon-blue);
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
         }
 
-        /* 显示时的状态 */
         .toast.show {
             opacity: 1;
             transform: translateX(-50%) translateY(0);
         }
-
     </style>
 </head>
 <body>
@@ -251,19 +266,15 @@
 
         function showToast(message, duration = 2000)
         {
-            // 创建元素
             const toast = document.createElement('div');
             toast.className = 'toast';
             toast.innerText = message;
             document.body.appendChild(toast);
 
-            // 触发动画 (稍微延迟一点点确保 transition 生效)
             setTimeout(() => toast.classList.add('show'), 10);
 
-            // 定时移除
             setTimeout(() => {
                 toast.classList.remove('show');
-                // 动画结束后从 DOM 中删除
                 setTimeout(() => {
                     document.body.removeChild(toast);
                 }, 400);
@@ -272,10 +283,10 @@
 
         function handleSubmit(event, type)
         {
-            event.preventDefault(); // 阻止页面刷新
+            event.preventDefault(); 
 
             let name, password;
-            if (type === '登录') // 登录
+            if (type === '登录') 
             {
                 var login_info = 
                 {
@@ -285,7 +296,7 @@
                 $.ajax
                 ({
                     type: "post",
-                    url : "http://8.148.76.120:9091/login",
+                    url : "http://8.148.76.120:80/login",
                     data: JSON.stringify(login_info),
                     success: function(res, status, xhr)
                     {
@@ -297,17 +308,16 @@
                         else
                         {
                             showToast(res.reason);
-                            document.getElementById('regName').value = '';
-                            document.getElementById('regPass').value = '';
+                            document.getElementById('loginPass').value = '';
                         }
                     },
                     error: function(xhr)
                     {
-                        showToast(JSON.stringify(xhr));
+                        showToast("连接服务器失败");
                     }
                 });
             }
-            else // 注册
+            else 
             {
                 var reg_info = 
                 {
@@ -317,7 +327,7 @@
                 $.ajax
                 ({
                     type: "post",
-                    url : "http://8.148.76.120:9091/reg",
+                    url : "http://8.148.76.120:80/reg",
                     data: JSON.stringify(reg_info),
                     success: function(res, status, xhr)
                     {
@@ -335,7 +345,7 @@
                     },
                     error: function(xhr)
                     {
-                        showToast(JSON.stringify(xhr));
+                        showToast("连接服务器失败");
                     }
                 });
             }

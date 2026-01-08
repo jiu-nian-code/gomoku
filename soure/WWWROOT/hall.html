@@ -57,7 +57,7 @@
             border: 1px solid var(--border); transition: 0.3s;
         }
         .avatar-wrapper:hover { border-color: var(--neon-blue); box-shadow: 0 0 15px rgba(0,210,255,0.3); }
-        .avatar { width: 35px; height: 35px; border-radius: 50%; border: 2px solid var(--neon-blue); }
+        .avatar { width: 35px; height: 35px; border-radius: 50%; border: 2px solid var(--neon-blue); object-fit: cover; }
 
         .profile-dropdown {
             position: absolute; top: 100%; right: 0; width: 240px;
@@ -72,10 +72,25 @@
         .info-value { font-size: 16px; font-weight: bold; color: #fff; }
         .info-value.highlight { color: var(--neon-blue); text-shadow: 0 0 10px var(--neon-blue); }
 
-        .logout-btn { margin-top: 10px; background: none; border: 1px solid var(--neon-red); color: var(--neon-red); padding: 10px; border-radius: 8px; cursor: pointer; font-weight: bold; transition: 0.3s; }
+        /* --- 修改头像按钮样式 --- */
+        .change-avatar-btn {
+            margin-top: 5px;
+            background: rgba(0, 210, 255, 0.1);
+            border: 1px solid var(--neon-blue);
+            color: var(--neon-blue);
+            padding: 8px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: bold;
+            transition: 0.3s;
+            font-size: 14px;
+        }
+        .change-avatar-btn:hover { background: var(--neon-blue); color: #000; }
+
+        .logout-btn { margin-top: 5px; background: none; border: 1px solid var(--neon-red); color: var(--neon-red); padding: 8px; border-radius: 8px; cursor: pointer; font-weight: bold; transition: 0.3s; font-size: 14px; }
         .logout-btn:hover { background: var(--neon-red); color: #fff; }
 
-        /* --- 左侧侧边栏 (激活态也收纳版) --- */
+        /* --- 左侧侧边栏 --- */
         .sidebar { position: fixed; left: 0; top: 50%; transform: translateY(-50%); display: flex; flex-direction: column; gap: 20px; z-index: 90; }
         
         .side-btn { 
@@ -84,27 +99,27 @@
             border: none; border-radius: 0 40px 40px 0; 
             color: rgba(255, 255, 255, 0.5); font-size: 18px; font-weight: bold; 
             cursor: pointer; display: flex; align-items: center; padding-left: 30px; 
-            transform: translateX(-190px); /* 默认收进屏幕 */
+            transform: translateX(-190px); 
             transition: all 0.4s cubic-bezier(0.18, 0.89, 0.32, 1.28);
             border-right: 2px solid transparent;
             backdrop-filter: blur(5px);
         }
         
         .side-btn:hover { 
-            transform: translateX(-15px); /* 鼠标移入滑出 */
+            transform: translateX(-15px); 
             color: #fff; background: rgba(255, 255, 255, 0.12);
             box-shadow: 10px 0 30px rgba(0,0,0,0.5);
         }
 
         .side-btn.active {
-            transform: translateX(-190px); /* 激活态平时也收进去 */
+            transform: translateX(-190px); 
             color: var(--neon-blue);
             background: rgba(0, 210, 255, 0.08);
-            border-right: 4px solid var(--neon-blue); /* 右侧边缘发光条区分 */
+            border-right: 4px solid var(--neon-blue); 
         }
         
         .side-btn.active:hover {
-            transform: translateX(-15px); /* 激活态鼠标移入依然滑出 */
+            transform: translateX(-15px); 
             background: linear-gradient(90deg, var(--neon-purple), var(--neon-blue));
             color: #fff;
         }
@@ -112,7 +127,6 @@
         /* --- 主舞台内容区 --- */
         .main-stage { flex: 1; display: flex; justify-content: center; align-items: center; position: relative; }
         
-        /* 页面切换逻辑 */
         .page-content { 
             position: absolute; width: 100%; height: 100%; 
             display: none; justify-content: center; align-items: center; 
@@ -121,7 +135,6 @@
         .page-content.active { display: flex; animation: fadeIn 0.5s ease; }
         @keyframes fadeIn { from { opacity: 0; transform: scale(0.95); } to { opacity: 1; transform: scale(1); } }
 
-        /* --- 匹配按钮与波纹 (颜色随动版) --- */
         .match-btn-container { position: relative; width: 300px; height: 300px; display: flex; justify-content: center; align-items: center; }
         
         .match-btn { 
@@ -134,7 +147,7 @@
 
         .ripple { 
             position: absolute; width: 220px; height: 220px; border-radius: 50%; 
-            border: 2px solid var(--neon-blue); /* 初始蓝色 */
+            border: 2px solid var(--neon-blue); 
             animation: move-ripple 2s infinite; pointer-events: none; opacity: 0; 
             transition: border-color 0.4s;
         }
@@ -142,7 +155,6 @@
 
         @keyframes move-ripple { 0% { transform: scale(1); opacity: 0.8; } 100% { transform: scale(1.8); opacity: 0; } }
 
-        /* 重点：按钮激活时变红，且其后的波纹同步变红 */
         .match-btn.active { background: radial-gradient(circle, var(--neon-red), #b91d1d); box-shadow: 0 0 60px var(--neon-red); }
         .match-btn.active ~ .ripple { border-color: var(--neon-red); }
 
@@ -157,7 +169,7 @@
         .toast { position: fixed; top: 20px; left: 50%; transform: translateX(-50%) translateY(-20px); background: rgba(0,0,0,0.8); color: #fff; padding: 10px 30px; border-radius: 5px; opacity: 0; transition: 0.3s; z-index: 2000; border-bottom: 2px solid var(--neon-blue); }
         .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
 
-        /* --- 战绩回放专用样式 --- */
+        /* --- 战绩/排行容器通用样式 --- */
         .history-container {
             width: 85%; max-width: 800px; height: 600px;
             background: var(--card-bg); border: 1px solid var(--border);
@@ -174,9 +186,9 @@
             background: rgba(255, 255, 255, 0.03); border: 1px solid var(--border);
             border-radius: 12px; padding: 18px; margin-bottom: 12px;
             display: flex; align-items: center; justify-content: space-between;
-            transition: 0.3s; opacity: 0; transform: translateX(-20px); /* 初始位置偏左且透明 */
+            transition: 0.3s; opacity: 0; transform: translateX(-20px);
         }
-        .history-item.show { opacity: 1; transform: translateX(0); } /* 动画终点 */
+        .history-item.show { opacity: 1; transform: translateX(0); }
         .history-item:hover { background: rgba(255, 255, 255, 0.08); border-color: var(--neon-blue); }
 
         .res-win { color: #2ecc71; text-shadow: 0 0 10px #2ecc71; font-weight: 900; font-size: 20px; width: 60px; }
@@ -192,6 +204,24 @@
             cursor: pointer; font-size: 13px; transition: 0.3s;
         }
         .btn-replay-small:hover { background: var(--neon-blue); color: #000; }
+
+        /* --- 新增：排行榜专用样式 --- */
+        .rank-item {
+            background: rgba(255, 255, 255, 0.03); border: 1px solid var(--border);
+            border-radius: 12px; padding: 15px 25px; margin-bottom: 12px;
+            display: flex; align-items: center; transition: 0.3s; opacity: 0; transform: translateY(20px);
+        }
+        .rank-item.show { opacity: 1; transform: translateY(0); }
+        .rank-item:hover { background: rgba(255, 255, 255, 0.08); border-color: var(--neon-blue); }
+        .rank-num { font-size: 24px; font-weight: 900; width: 40px; font-style: italic; color: rgba(255, 255, 255, 0.3); }
+        .rank-user-info { flex: 1; display: flex; align-items: center; gap: 15px; margin-left: 10px; }
+        .rank-avatar-img { width: 40px; height: 40px; border-radius: 50%; border: 2px solid var(--border); }
+        .rank-name-text { font-size: 16px; font-weight: bold; color: #fff; }
+        .rank-score-val { font-size: 20px; color: var(--neon-blue); font-weight: bold; text-shadow: 0 0 10px rgba(0, 210, 255, 0.5); }
+        .rank-item:nth-child(1) .rank-num { color: #f1c40f; text-shadow: 0 0 15px #f1c40f; font-size: 30px; }
+        .rank-item:nth-child(2) .rank-num { color: #bdc3c7; text-shadow: 0 0 15px #bdc3c7; font-size: 26px; }
+        .rank-item:nth-child(3) .rank-num { color: #e67e22; text-shadow: 0 0 15px #e67e22; font-size: 24px; }
+        .rank-item:nth-child(-n+3) { border-left: 4px solid currentColor; background: rgba(255, 255, 255, 0.05); }
     </style>
 </head>
 <body>
@@ -201,7 +231,7 @@
         <div class="user-center">
             <div class="avatar-wrapper">
                 <span id="username_display">用户载入中...</span>
-                <img src="./image/yeshou.jpg" class="avatar">
+                <img src="" class="avatar" id="user_avatar_img">
             </div>
             <div class="profile-dropdown">
                 <div class="info-module"><div class="info-label">用户名</div><div class="info-value" id="val_username">#000000</div></div>
@@ -209,6 +239,10 @@
                 <div class="info-module"><div class="info-label">得分</div><div class="info-value" id="val_score">0</div></div>
                 <div class="info-module"><div class="info-label">游戏总场数</div><div class="info-value" id="val_total_games">0</div></div>
                 <div class="info-module"><div class="info-label">游戏胜利场数</div><div class="info-value" id="val_win_games">0</div></div>
+                
+                <input type="file" id="avatar_file_input" style="display: none;" accept="image/*">
+                <button class="change-avatar-btn" onclick="triggerAvatarUpload()">修改个人头像</button>
+                
                 <button class="logout-btn" onclick="handleLogout()">退出登录</button>
             </div>
         </div>
@@ -217,6 +251,7 @@
     <div class="sidebar">
         <button class="side-btn active" id="menu_match" onclick="switchPage('match')">快速匹配</button>
         <button class="side-btn" id="menu_create" onclick="switchPage('create')">房间对战</button>
+        <button class="side-btn" id="menu_rank" onclick="switchPage('rank')">全服排行</button>
         <button class="side-btn" id="menu_history" onclick="switchPage('history')">战绩回放</button>
     </div>
 
@@ -234,16 +269,17 @@
             <p style="margin-top:20px; opacity:0.5">房间配置模块正在开发中...</p>
         </div>
 
-        <div id="page_join" class="page-content">
-            <h2 style="color: var(--neon-blue)">房间列表</h2>
-            <p style="margin-top:20px; opacity:0.5">正在获取远程服务器数据...</p>
+        <div id="page_rank" class="page-content">
+            <div class="history-container" style="max-width: 600px;">
+                <div class="history-header" style="border-color: #f1c40f; color: #f1c40f;">全服积分榜</div>
+                <div class="history-list" id="rank_list_box"></div>
+            </div>
         </div>
 
         <div id="page_history" class="page-content">
             <div class="history-container">
                 <div class="history-header">最近对局</div>
-                <div class="history-list" id="history_list_box">
-                    </div>
+                <div class="history-list" id="history_list_box"></div>
             </div>
         </div>
     </main>
@@ -262,292 +298,221 @@
     </div>
 
     <script>
-        // --- 核心逻辑切换函数 (不影响后端逻辑) ---
-        // function switchPage(pageName)
-        // {
-        //     // 如果点的是当前页，直接返回
-        //     if($(`#menu_${pageName}`).hasClass('active')) return;
+        // 1. 将状态变量定义在最顶层，确保全局可见
+        let isUserLoggedIn = true; 
+        var ws_url = "ws://" + location.host + "/hall";
+        var ws_hdl = null;
+        let isMatching = false;
 
-        //     // 切换侧边栏按钮状态
-        //     $('.side-btn').removeClass('active');
-        //     $(`#menu_${pageName}`).addClass('active');
+        // 修改头像触发函数
+        function triggerAvatarUpload() { 
+            // 如果未登录，直接拦截
+            if (!isUserLoggedIn) {
+                checkLoginStatus();
+                return;
+            }
+            $('#avatar_file_input').click(); 
+        }
 
-        //     // 切换内容显隐
-        //     $('.page-content').removeClass('active');
-        //     $(`#page_${pageName}`).addClass('active');
+        // 统一的登录检查弹窗
+        function checkLoginStatus() {
+            if (!isUserLoggedIn) {
+                if (confirm("当前未登录，无法使用此功能。是否前往登录页面？")) {
+                    location.href = "login.html";
+                }
+                return false;
+            }
+            return true;
+        }
 
-        //     showToast("已切换至: " + $(`#menu_${pageName}`).text());
-        // }
+        $('#avatar_file_input').on('change', function(e) {
+            const file = e.target.files[0];
+            if (!file) return;
+            if (file.size > 2 * 1024 * 1024) { showToast("图片大小不能超过 2MB"); return; }
+            const reader = new FileReader();
+            reader.onload = function(event) {
+                $('#user_avatar_img').attr('src', event.target.result);
+                $('.avatar').attr('src', event.target.result);
+            };
+            reader.readAsDataURL(file);
+            uploadAvatar(file);
+        });
+
+        function uploadAvatar(file) {
+            showToast("正在上传头像...");
+            $.ajax({
+                url: "http://8.148.76.120:80/user/upload_avatar",
+                type: "POST",
+                data: file,
+                processData: false,
+                contentType: file.type,
+                // success: function(res) { showToast("头像修改成功！"); },
+                // error: function() { showToast("头像上传失败"); }
+            });
+        }
 
         function switchPage(pageName) {
+            if (!checkLoginStatus()) return; // 切换页面时也检查
             if($(`#menu_${pageName}`).hasClass('active')) return;
             $('.side-btn').removeClass('active');
             $(`#menu_${pageName}`).addClass('active');
             $('.page-content').removeClass('active');
             $(`#page_${pageName}`).addClass('active');
 
-            // --- 新增逻辑：如果是战绩页，触发渲染 ---
             if(pageName === 'history') {
                 renderHistoryList();
+            } else if(pageName === 'rank') {
+                getAndRenderRank(); 
             }
         }
 
-        var ws_url = "ws://" + location.host + "/hall";
-        var ws_hdl = null;
-        let isMatching = false;
-
-        $(document).ready(function()
-        {
-            // 保留你的原始请求逻辑
+        $(document).ready(function() {
             requestUserData();
 
-            // 原有聊天框逻辑
-            $('#chatToggle').click(function() { $('#chatBox').fadeIn(300).css('display', 'flex'); $(this).hide(); });
+            // 全局点击监听：仅当未登录时拦截
+            $(document).on('click', function(e) {
+                if (!isUserLoggedIn) {
+                    // 如果点击的是已经弹出的 confirm 确认框之外的区域
+                    checkLoginStatus();
+                    e.preventDefault();
+                    e.stopPropagation();
+                }
+            });
+
+            $('#chatToggle').click(function(e) { 
+                if(!checkLoginStatus()) return;
+                $('#chatBox').fadeIn(300).css('display', 'flex'); 
+                $(this).hide(); 
+            });
+
             $('#closeChat').click(function() { $('#chatBox').fadeOut(200); $('#chatToggle').fadeIn(300); });
-            $('#chatInput').on('keypress', function(e)
-            {
-                if(e.which == 13 && $(this).val() != "") 
-                {
+            
+            $('#chatInput').on('keypress', function(e) {
+                if(e.which == 13 && $(this).val() != "") {
                     $('#msgList').append(`<div><b style="color:#fff">我:</b> ${$(this).val()}</div>`);
                     $(this).val('');
                     $('#msgList').scrollTop($('#msgList')[0].scrollHeight);
                 }
             });
 
-            // 原有匹配变色逻辑 (现在的 CSS 会自动把 ripple 变红)
-            $('#matchBtn').click(function()
-            {
-                // isMatching = !isMatching;
-                // $(this).toggleClass('active').text(isMatching ? '取消匹配' : '开始匹配');
-                // showToast(isMatching ? '正在匹配对手...' : '匹配已取消');
-                if(isMatching == false)
-                {
-                    var req_json = {
-                        optype : "match_start"
-                    }
-                    ws_hdl.send(JSON.stringify(req_json));
-                }
-                else
-                {
-                    var req_json = {
-                        optype : "match_stop"
-                    }
-                    ws_hdl.send(JSON.stringify(req_json));
-                }
+            $('#matchBtn').click(function() {
+                if(!checkLoginStatus()) return;
+                if(!isMatching) { ws_hdl.send(JSON.stringify({optype : "match_start"})); }
+                else { ws_hdl.send(JSON.stringify({optype : "match_stop"})); }
             });
         });
 
-        // var ws_url = "ws://" + location.host + "/hall";
-        // var ws_hdl = null;
-        function requestUserData()
-        {
-            console.log("正在请求用户信息...");
-            $.ajax
-            ({
-                url: "http://8.148.76.120:9091/hall/info",
+        function requestUserData() {
+            $.ajax({
+                url: "http://8.148.76.120:80/hall/info",
                 type: "GET",
-                success: function(res, status, xhr) {
+                success: function(res) {
+                    isUserLoggedIn = true;
                     $('#username_display').text(res.name);
                     $('#val_username').text(res.name);
                     $('#val_uid').text(res.id);
                     $('#val_score').text(res.score);
                     $('#val_total_games').text(res.total_games);
                     $('#val_win_games').text(res.win_games);
+                    $('#user_avatar_img').attr('src', "http://8.148.76.120:80/image/avatar/" + res.id);
 
                     ws_hdl = new WebSocket(ws_url);
                     ws_hdl.onopen = ws_onopen;
-                    ws_hdl.onclose = ws_onclose;
-                    ws_hdl.onerror = ws_onerror;
                     ws_hdl.onmessage = ws_onmessage;
                 },
-                error: function(xhr) {
-                    location.href = "login.html"; 
+                error: function() {
+                    isUserLoggedIn = false;
+                    $('#username_display').text("未登录 (点击登录)");
                 }
             });
         }
 
-        window.onbeforeunload = function() { if(ws_hdl) ws_hdl.close(); }
-        function ws_onopen()
-        {
-            // showToast("ws_onopen");
-        }
-        function ws_onclose()
-        {
-            // showToast("ws_onclose");
-        }
-        function ws_onerror()
-        {
-            // showToast("ws_onerror");
-        }
-
-        function ws_onmessage(evt)
-        {
+        function ws_onopen() {}
+        function ws_onmessage(evt) {
             var resp_json = JSON.parse(evt.data);
             var $matchBtn = $('#matchBtn');
-
-            if(resp_json.result == false)
-            {
-                location.href = "login.html"; // 简单处理
-                return;
+            if(resp_json.result == false) { 
+                isUserLoggedIn = false; 
+                showToast("登录已失效"); 
+                return; 
             }
-            if(resp_json["optype"] == "hall_ready")
-            {
-                showToast("游戏大厅建立连接成功");
+            
+            if(resp_json["optype"] == "hall_ready") { showToast("游戏大厅连接成功"); }
+            else if(resp_json["optype"] == "match_start") { 
+                isMatching = true; $matchBtn.addClass('active').text('取消匹配'); showToast('正在匹配对手...'); 
             }
-            else if(resp_json["optype"] == "match_start")
-            {
-                showToast("加入匹配队列");
-                isMatching = true;
-                // $matchBtn.toggleClass('active').text(isMatching ? '取消匹配' : '开始匹配');
-                $matchBtn.addClass('active').text('取消匹配'); // 强制添加类名
-                showToast(isMatching ? '正在匹配对手...' : '匹配已取消');
-                return;
+            else if(resp_json["optype"] == "match_stop") { 
+                isMatching = false; $matchBtn.removeClass('active').text('开始匹配'); showToast('匹配已取消'); 
             }
-            else if(resp_json["optype"] == "match_stop")
-            {
-                showToast("移出匹配队列");
-                isMatching = false;
-                // $matchBtn.toggleClass('active').text(isMatching ? '取消匹配' : '开始匹配');
-                $matchBtn.removeClass('active').text('开始匹配'); // 强制移除类名
-                showToast(isMatching ? '正在匹配对手...' : '匹配已取消');
-                return;
-            }
-            else if(resp_json["optype"] == "match_success")
-            {
-                showToast("匹配成功");
-                location.href = "game_room.html";
-            }
-            else if(resp_json["optype"] == "get_matches")
-            {
-                const $box = $('#history_list_box');
-        
-                // --- 2. 清空旧列表 ---
-                $box.empty();
-                let mockData = [];
-                // for(let i=0; i<20; i++) {
-                //     mockData.push({
-                //         win: Math.random() > 0.5,
-                //         score: 1200 + i*5,
-                //         change: 15 + i,
-                //         time: "2026-01-06 14:" + (50 - i)
-                //     });
-                // }
-                for(let i = 0; i < resp_json["matches"].length; i++)
-                {
-                    var recordObj = JSON.parse(resp_json["matches"][i]);
-                    mockData.push({
-                        win: recordObj.is_win,
-                        score: recordObj.cur_score,
-                        change: recordObj.cur_get,
-                        time: recordObj.cur_date,
-                        matchId: recordObj.match_id
-                    });
-                }
-
-                // 循环生成 HTML
-                mockData.forEach((item, index) => {
-                    const resClass = item.win ? "res-win" : "res-loss";
-                    const resText = item.win ? "WIN" : "LOSS";
-                    const sign = item.win ? "+" : "";
-                    
-                    const row = `
-                        <div class="history-item">
-                            <div class="${resClass}">${resText}</div>
-                            <div class="history-info">
-                                <div class="h-score">得分 ${item.score} 
-                                    <span style="color:${item.win?'#2ecc71':'#ff4757'}; font-size:14px">(${sign}${item.change})</span>
-                                </div>
-                                <div class="h-time">${item.time}</div>
-                            </div>
-                            <button class="btn-replay-small" onclick="goToReplay(${item.matchId})">回放</button>
-                        </div>
-                    `;
-
-                    const $row = $(row);
-                    $box.append($row);
-
-                    // 核心动画：错开时间给每一行添加 .show 类名，实现滚动弹出感
-                    setTimeout(() => {
-                        $row.addClass('show');
-                    }, index * 60); // 每行间隔 60 毫秒弹出
+            else if(resp_json["optype"] == "match_success") { location.href = "game_room.html"; }
+            else if(resp_json["optype"] == "get_matches") { renderHistoryDOM(resp_json["matches"]); }
+            else if(resp_json["optype"] == "get_rank") {
+                var serializedRanks = resp_json["users"]; 
+                var parsedRanks = serializedRanks.map(function(itemStr) {
+                    var obj = JSON.parse(itemStr); 
+                    return { uid: obj.id, name: obj.name, score: obj.score };
                 });
-            }
-            else
-            {
-                alert(JSON.stringify(resp_json));
-                location.href = "login.html"; // 简单处理
-                return;
+                renderRankDOM(parsedRanks);
             }
         }
 
-        function handleLogout()
-        {
-            if(confirm("确定要退出登录吗？"))
-            {
-                location.href = "login.html";
-            }
+        function getAndRenderRank() {
+            if(!checkLoginStatus()) return;
+            var rank_req = { optype: "get_rank" };
+            ws_hdl.send(JSON.stringify(rank_req));
         }
 
-        function goToReplay(mid) {
-            localStorage.setItem('target_game_id', mid); // 存入
-            window.location.href = 'review_room.html';
+        function renderRankDOM(ranks) {
+            const $box = $('#rank_list_box');
+            $box.empty();
+            ranks.forEach((item, index) => {
+                const row = `
+                    <div class="rank-item">
+                        <div class="rank-num">${index + 1}</div>
+                        <div class="rank-user-info">
+                            <img src="http://8.148.76.120:80/image/avatar/${item.uid}" class="rank-avatar-img" onerror="this.src='./image/yeshou.jpg'">
+                            <span class="rank-name-text">${item.name}</span>
+                        </div>
+                        <div class="rank-score-val">${item.score} <span style="font-size:12px; opacity:0.6">PT</span></div>
+                    </div>`;
+                const $row = $(row);
+                $box.append($row);
+                setTimeout(() => $row.addClass('show'), index * 60);
+            });
         }
 
-        function showToast(msg)
-        {
-            const t = $('<div class="toast"></div>').text(msg).appendTo('body');
-            setTimeout(() => t.addClass('show'), 10);
-            setTimeout(() => { t.removeClass('show'); setTimeout(() => t.remove(), 400); }, 2000);
+        function renderHistoryDOM(matches) {
+            const $box = $('#history_list_box');
+            $box.empty();
+            matches.forEach((m_str, index) => {
+                var item = JSON.parse(m_str);
+                const resClass = item.is_win ? "res-win" : "res-loss";
+                const row = `
+                    <div class="history-item">
+                        <div class="${resClass}">${item.is_win?'WIN':'LOSS'}</div>
+                        <div class="history-info">
+                            <div class="h-score">得分 ${item.cur_score} <span style="color:${item.is_win?'#2ecc71':'#ff4757'}; font-size:14px">(${item.is_win?'+':''}${item.cur_get})</span></div>
+                            <div class="h-time">${item.cur_date}</div>
+                        </div>
+                        <button class="btn-replay-small" onclick="goToReplay('${item.match_id}')">回放</button>
+                    </div>`;
+                const $row = $(row);
+                $box.append($row);
+                setTimeout(() => $row.addClass('show'), index * 60);
+            });
         }
 
         function renderHistoryList() {
-            // const $box = $('#history_list_box');
-            // $box.empty(); // 清空旧列表
+            if(!checkLoginStatus()) return;
+            ws_hdl.send(JSON.stringify({optype: "get_matches", uid: parseInt($('#val_uid').text())}));
+        }
 
-            var matches_info = {
-                optype: "get_matches",
-                uid: parseInt($('#val_uid').text(), 10)
-            }
-            ws_hdl.send(JSON.stringify(matches_info));
-            // 模拟从服务器获取的20条数据 (后期你可以把这里改成 AJAX 请求)
-            // 假设数据格式：[{win: true, score: 1250, change: +15, time: "2026-01-01 12:00"}]
-            // let mockData = [];
-            // for(let i=0; i<20; i++) {
-            //     mockData.push({
-            //         win: Math.random() > 0.5,
-            //         score: 1200 + i*5,
-            //         change: 15 + i,
-            //         time: "2026-01-06 14:" + (50 - i)
-            //     });
-            // }
-
-            // // 循环生成 HTML
-            // mockData.forEach((item, index) => {
-            //     const resClass = item.win ? "res-win" : "res-loss";
-            //     const resText = item.win ? "WIN" : "LOSS";
-            //     const sign = item.win ? "+" : "-";
-                
-            //     const row = `
-            //         <div class="history-item">
-            //             <div class="${resClass}">${resText}</div>
-            //             <div class="history-info">
-            //                 <div class="h-score">得分 ${item.score} 
-            //                     <span style="color:${item.win?'#2ecc71':'#ff4757'}; font-size:14px">(${sign}${item.change})</span>
-            //                 </div>
-            //                 <div class="h-time">${item.time}</div>
-            //             </div>
-            //             <button class="btn-replay-small" onclick="showToast('正在获取录像...')">回放</button>
-            //         </div>
-            //     `;
-                
-            //     const $row = $(row);
-            //     $box.append($row);
-
-            //     // 核心动画：错开时间给每一行添加 .show 类名，实现滚动弹出感
-            //     setTimeout(() => {
-            //         $row.addClass('show');
-            //     }, index * 60); // 每行间隔 60 毫秒弹出
-            // });
+        function handleLogout() { if(confirm("确定要退出登录吗？")) location.href = "login.html"; }
+        function goToReplay(mid) { window.location.href = 'review_room.html?mid=' + encodeURIComponent(mid); }
+        function showToast(msg) {
+            const t = $('<div class="toast"></div>').text(msg).appendTo('body');
+            setTimeout(() => t.addClass('show'), 10);
+            setTimeout(() => { t.removeClass('show'); setTimeout(() => t.remove(), 400); }, 2000);
         }
     </script>
 </body>
